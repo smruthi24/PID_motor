@@ -5,11 +5,16 @@
  *
  * Tutorial page: https://arduinogetstarted.com/tutorials/arduino-dc-motor
  */
+#include "Encoder.h"
 
 // constants won't change
 const int ENA_PIN = 12; // the Arduino pin connected to the EN1 pin L298N
 const int IN1_PIN = 6; // the Arduino pin connected to the IN1 pin L298N
 const int IN2_PIN = 7; // the Arduino pin connected to the IN2 pin L298N
+const int ENC_A = 2;
+const int ENC_B = 3;
+
+Encoder myEnc(2, 3);
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -17,8 +22,11 @@ void setup() {
   pinMode(ENA_PIN, OUTPUT);
   pinMode(IN1_PIN, OUTPUT);
   pinMode(IN2_PIN, OUTPUT);
+
+
   Serial.begin(9600);
   Serial.println("enter 1 for clockwise or 2 for counter clockwise");
+  
   while(!Serial);
 }
 
@@ -35,11 +43,15 @@ void loop() {
       for (int speed = 0; speed <= 255; speed++) {
         analogWrite(ENA_PIN, speed); // control the speed
         delay(20);
+        long newPos = myEnc.read();
+        Serial.println(newPos);
       }
 
       for (int speed = 255; speed >= 0; speed--) {
         analogWrite(ENA_PIN, speed); // control the speed
         delay(20);
+        long newPos = myEnc.read();
+        Serial.println(newPos);
       }
     }
 
@@ -50,13 +62,19 @@ void loop() {
       for (int speed = 0; speed <= 255; speed++) {
         analogWrite(ENA_PIN, speed); // control the speed
         delay(20);
+        long newPos = myEnc.read();
+        Serial.println(newPos);
       }
 
       for (int speed = 255; speed >= 0; speed--) {
         analogWrite(ENA_PIN, speed); // control the speed
         delay(20);
+        long newPos = myEnc.read();
+        Serial.println(newPos);
       }
     }
   }
 }
+
+
 
