@@ -58,8 +58,8 @@ void loop() {
     }
 
     else if (userInput = newPos) {
-      digitalWrite(IN1_PIN, HIGH); // control motor A spins counterclockwise
-      digitalWrite(IN2_PIN, HIGH);  // control motor A spins counterclockwise
+      digitalWrite(IN1_PIN, HIGH); // control motor A stops
+      digitalWrite(IN2_PIN, HIGH);  // control motor A stops
 
       }
   }
