@@ -11,10 +11,8 @@
 const int ENA_PIN = 12; // the Arduino pin connected to the EN1 pin L298N
 const int IN1_PIN = 6; // the Arduino pin connected to the IN1 pin L298N
 const int IN2_PIN = 7; // the Arduino pin connected to the IN2 pin L298N
-const int ENC_A = 2;
-const int ENC_B = 3;
-
 Encoder myEnc(2, 3);
+long newPos = 0;
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -23,20 +21,49 @@ void setup() {
   pinMode(IN1_PIN, OUTPUT);
   pinMode(IN2_PIN, OUTPUT);
 
-
   Serial.begin(9600);
-  Serial.println("enter 1 for clockwise or 2 for counter clockwise");
+  Serial.println("enter number of counts");
   
-  while(!Serial);
+  while(!Serial);  
 }
+
 
 // the loop function runs over and over again forever
 void loop() {
 
   if (Serial.available()) {
-    int userInput = Serial.parseInt();
+    long userInput = Serial.parseInt();
 
-    if (userInput == 1) {
+    if (userInput > newPos) {
+      for (int i = newPos; i < userInput; i++) {
+          digitalWrite(IN1_PIN, HIGH); // control motor A spins clockwise
+          digitalWrite(IN2_PIN, LOW);  // control motor A spins clockwise
+          analogWrite(ENA_PIN, 60); // control the speed
+          myEnc.write(i);
+          newPos = myEnc.read();
+          Serial.println(newPos);
+
+      }
+    }    
+
+    else if (userInput < newPos) {  
+      for (int j = newPos; j > userInput; j--) {
+            digitalWrite(IN1_PIN, LOW); // control motor A spins counterclockwise
+            digitalWrite(IN2_PIN, HIGH);  // control motor A spins counterclockwise
+            analogWrite(ENA_PIN, 60); // control the speed
+            myEnc.write(j);
+            newPos = myEnc.read();
+            Serial.println(newPos);
+      }
+    }
+
+    else if (userInput = newPos) {
+      digitalWrite(IN1_PIN, HIGH); // control motor A spins counterclockwise
+      digitalWrite(IN2_PIN, HIGH);  // control motor A spins counterclockwise
+
+      }
+  }
+    /*if (userInput == 1) {
       digitalWrite(IN1_PIN, HIGH); // control motor A spins clockwise
       digitalWrite(IN2_PIN, LOW);  // control motor A spins clockwise
 
@@ -72,8 +99,7 @@ void loop() {
         long newPos = myEnc.read();
         Serial.println(newPos);
       }
-    }
-  }
+    }*/
 }
 
 
