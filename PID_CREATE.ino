@@ -34,35 +34,38 @@ void loop() {
   if (Serial.available()) {
     long userInput = Serial.parseInt();
 
-    if (userInput > newPos) {
-      for (int i = newPos; i < userInput; i++) {
-          digitalWrite(IN1_PIN, HIGH); // control motor A spins clockwise
-          digitalWrite(IN2_PIN, LOW);  // control motor A spins clockwise
-          analogWrite(ENA_PIN, 60); // control the speed
-          myEnc.write(i);
-          newPos = myEnc.read();
-          Serial.println(newPos);
-
-      }
-    }    
-
-    else if (userInput < newPos) {  
-      for (int j = newPos; j > userInput; j--) {
-            digitalWrite(IN1_PIN, LOW); // control motor A spins counterclockwise
-            digitalWrite(IN2_PIN, HIGH);  // control motor A spins counterclockwise
+      if (userInput > newPos) {
+        for (int i = newPos; i <= userInput; i++) {
+            digitalWrite(IN1_PIN, HIGH); // control motor A spins clockwise
+            digitalWrite(IN2_PIN, LOW);  // control motor A spins clockwise
             analogWrite(ENA_PIN, 60); // control the speed
-            myEnc.write(j);
+            myEnc.write(i);
             newPos = myEnc.read();
             Serial.println(newPos);
+
+        }
+
+      }    
+
+      else if (userInput < newPos) {  
+        for (int j = newPos; j >= userInput; j--) {
+              digitalWrite(IN1_PIN, LOW); // control motor A spins counterclockwise
+              digitalWrite(IN2_PIN, HIGH);  // control motor A spins counterclockwise
+              analogWrite(ENA_PIN, 60); // control the speed
+              myEnc.write(j);
+              newPos = myEnc.read();
+              Serial.println(newPos);
+
+        }
+
+      }
+
+      while (userInput = newPos) {
+        digitalWrite(IN1_PIN, HIGH); // control motor A stops
+        digitalWrite(IN2_PIN, HIGH);  // control motor A stops
       }
     }
-
-    else if (userInput = newPos) {
-      digitalWrite(IN1_PIN, HIGH); // control motor A stops
-      digitalWrite(IN2_PIN, HIGH);  // control motor A stops
-
-      }
-  }
+      
     /*if (userInput == 1) {
       digitalWrite(IN1_PIN, HIGH); // control motor A spins clockwise
       digitalWrite(IN2_PIN, LOW);  // control motor A spins clockwise
@@ -101,6 +104,8 @@ void loop() {
       }
     }*/
 }
+
+
 
 
 
