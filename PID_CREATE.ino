@@ -33,36 +33,41 @@ void loop() {
 
   if (Serial.available()) {
     long userInput = Serial.parseInt();
+    newPos = myEnc.read();
+    Serial.println(newPos);
 
       if (userInput > newPos) {
-        for (int i = newPos; i <= userInput; i++) {
-            digitalWrite(IN1_PIN, HIGH); // control motor A spins clockwise
-            digitalWrite(IN2_PIN, LOW);  // control motor A spins clockwise
-            analogWrite(ENA_PIN, 60); // control the speed
-            myEnc.write(i);
+        digitalWrite(IN1_PIN, HIGH); // control motor A spins clockwise
+        digitalWrite(IN2_PIN, LOW);  // control motor A spins clockwise
+        analogWrite(ENA_PIN, 50); // control the speed
+        while (userInput > newPos) {
+            //myEnc.write(i);
             newPos = myEnc.read();
             Serial.println(newPos);
 
         }
+        digitalWrite(IN1_PIN, HIGH); // control motor A stops
+        digitalWrite(IN2_PIN, HIGH);  // control motor A stops
+        Serial.println(myEnc.read());
+        Serial.println("enter number of counts");
+        userInput = Serial.parseInt();
 
       }    
 
       else if (userInput < newPos) {  
-        for (int j = newPos; j >= userInput; j--) {
-              digitalWrite(IN1_PIN, LOW); // control motor A spins counterclockwise
-              digitalWrite(IN2_PIN, HIGH);  // control motor A spins counterclockwise
-              analogWrite(ENA_PIN, 60); // control the speed
-              myEnc.write(j);
+        digitalWrite(IN1_PIN, LOW); // control motor A spins counterclockwise
+        digitalWrite(IN2_PIN, HIGH);  // control motor A spins counterclockwise
+        analogWrite(ENA_PIN, 50); // control the speed
+        while (userInput < newPos) {
+              //myEnc.write(j);
               newPos = myEnc.read();
               Serial.println(newPos);
 
         }
 
-      }
-
-      while (userInput == newPos) {
         digitalWrite(IN1_PIN, HIGH); // control motor A stops
         digitalWrite(IN2_PIN, HIGH);  // control motor A stops
+        Serial.println(myEnc.read());
         Serial.println("enter number of counts");
         userInput = Serial.parseInt();
       }
@@ -106,3 +111,5 @@ void loop() {
       }
     }*/
 }
+
+
