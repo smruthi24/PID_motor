@@ -60,9 +60,11 @@ void loop() {
 
       }
 
-      while (userInput = newPos) {
+      while (userInput == newPos) {
         digitalWrite(IN1_PIN, HIGH); // control motor A stops
         digitalWrite(IN2_PIN, HIGH);  // control motor A stops
+        Serial.println("enter number of counts");
+        userInput = Serial.parseInt();
       }
     }
       
@@ -104,8 +106,3 @@ void loop() {
       }
     }*/
 }
-
-
-
-
-
