@@ -16,11 +16,15 @@ const int ENCA = 2;
 const int ENCB = 3;
 Encoder myEnc(ENCA, ENCB);
 volatile int newPos = 0;
-volatile int oldPos = 0;
 long prevT = 0;
 float eprev = 0;
 int speed;
-int userInput;
+long userInput;
+long currT;
+float deltaT;
+int e;
+float dedt;
+float eintegral;
 
 // PID constants
 float kp = 1;
@@ -46,39 +50,14 @@ void setup() {
 void loop() {
 
   if (Serial.available()) {
-    long userInput = Serial.parseInt();
+    userInput = Serial.parseInt();
     newPos = myEnc.read();
     //noInterrupts();
     Serial.println(newPos);
 
-    long currT = micros();
-    float deltaT = ((float) (currT - prevT))/( 1.0e6 );
-    prevT = currT;
-    
-    // error
-    int e = abs(newPos - userInput);
-
-    // derivative
-    float dedt = (e-eprev)/(deltaT);
-
-    // integral
-    float eintegral = eintegral + e*deltaT;
-
-    // control signal
-    float u = kp*e + kd*dedt + ki*eintegral;
-
-    // motor power
-    float speed = constrain(u, 0, 255);
-
-    setMotor(userInput, newPos, speed, ENA, IN1, IN2);
+    setMotor(prevT, eprev, eintegral, kp, kd, ki, userInput, newPos, speed, ENA, IN1, IN2);
 
     eprev = e;
-
-    Serial.print("target count: ");
-    Serial.print(userInput);
-    Serial.print(" actual count: ");
-    newPos = myEnc.read();
-    Serial.println(newPos);
 
   }
       
@@ -121,39 +100,88 @@ void loop() {
     }*/
 }
 
-void setMotor(int userInput, volatile int newPos, int speed, int ENA, int IN1, int IN2){
-  analogWrite(ENA, speed); // control the speed
+void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, float ki, long userInput, volatile int newPos, int speed, int ENA, int IN1, int IN2){
+
   if (userInput > newPos) {
-        digitalWrite(IN1, HIGH); // control motor A spins clockwise
-        digitalWrite(IN2, LOW);  // control motor A spins clockwise
+    digitalWrite(IN1, HIGH); // control motor A spins clockwise
+    digitalWrite(IN2, LOW);  // control motor A spins clockwise
         
-        while (userInput > newPos) {
-            newPos = myEnc.read();
-            Serial.println(newPos);
+    while (userInput > newPos) {
 
-        }
-        digitalWrite(IN1, HIGH); // control motor A stops
-        digitalWrite(IN2, HIGH);  // control motor A stops
-        //interrupts();
-        Serial.println("enter number of counts");
-        userInput = Serial.parseInt();
-
-      }    
-
-      else if (userInput < newPos) {  
-        digitalWrite(IN1, LOW); // control motor A spins counterclockwise
-        digitalWrite(IN2, HIGH);  // control motor A spins counterclockwise
+      currT = micros();
+      deltaT = ((float) (currT - prevT))/( 1.0e6 );
+      prevT = currT;
         
-        while (userInput < newPos) {
-              newPos = myEnc.read();
-              Serial.println(newPos);
+      // error
+      e = abs(newPos - userInput);
 
-        }
+      // derivative
+      dedt = (e-eprev)/(deltaT);
 
-        digitalWrite(IN1, HIGH); // control motor A stops
-        digitalWrite(IN2, HIGH);  // control motor A stops
-        interrupts();
-        Serial.println("enter number of counts");
-        userInput = Serial.parseInt();
-      }
+      // integral
+      eintegral = eintegral + e*deltaT;
+
+      int u = kp*e + kd*dedt + ki*eintegral;
+
+      // motor power
+      speed = constrain(u, 0, 255);
+
+      analogWrite(ENA, speed); // control the speed
+
+      newPos = myEnc.read();
+      Serial.println(newPos);
+
+    }
+        
+    digitalWrite(IN1, HIGH); // control motor A stops
+    digitalWrite(IN2, HIGH);  // control motor A stops
+    //interrupts();
+    Serial.println("enter number of counts");
+    userInput = Serial.parseInt();
+
+  }    
+
+  else if (userInput < newPos) {  
+    digitalWrite(IN1, LOW); // control motor A spins counterclockwise
+    digitalWrite(IN2, HIGH);  // control motor A spins counterclockwise
+        
+    while (userInput < newPos) {
+
+      currT = micros();
+      deltaT = ((float) (currT - prevT))/( 1.0e6 );
+      prevT = currT;
+        
+      // error
+      e = abs(newPos - userInput);
+
+      // derivative
+      dedt = (e-eprev)/(deltaT);
+
+      // integral
+      eintegral = eintegral + e*deltaT;
+
+      int u = kp*e + kd*dedt + ki*eintegral;
+
+      // motor power
+      speed = constrain(u, 0, 255);
+
+      analogWrite(ENA, speed); // control the speed
+
+      newPos = myEnc.read();
+      Serial.println(newPos);
+
+    }
+
+    digitalWrite(IN1, HIGH); // control motor A stops
+    digitalWrite(IN2, HIGH);  // control motor A stops
+    //interrupts();
+    Serial.println("enter number of counts");
+    userInput = Serial.parseInt();
+  }
+
+  Serial.print("target count: ");
+  Serial.print(userInput);
+  Serial.print(" actual count: ");
+  newPos = myEnc.read();
+  Serial.println(newPos);
 }
