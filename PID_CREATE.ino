@@ -5,28 +5,37 @@
  *
  * Tutorial page: https://arduinogetstarted.com/tutorials/arduino-dc-motor
  */
+#include <util/atomic.h>
 #include "Encoder.h"
 
 // constants won't change
-const int ENA_PIN = 12; // the Arduino pin connected to the EN1 pin L298N
-const int IN1_PIN = 6; // the Arduino pin connected to the IN1 pin L298N
-const int IN2_PIN = 7; // the Arduino pin connected to the IN2 pin L298N
-Encoder myEnc(2, 3);
-long newPos = 0;
+const int ENA = 12; // the Arduino pin connected to the EN1 pin L298N
+const int IN1 = 6; // the Arduino pin connected to the IN1 pin L298N
+const int IN2 = 7; // the Arduino pin connected to the IN2 pin L298N
+const int ENCA = 2;
+const int ENCB = 3;
+Encoder myEnc(ENCA, ENCB);
+volatile int newPos = 0;
+int pos = 0; 
+long prevT = 0;
+float eprev = 0;
+int speed;
+int userInput;
 
 // the setup function runs once when you press reset or power the board
 void setup() {
   // initialize digital pins as outputs.
-  pinMode(ENA_PIN, OUTPUT);
-  pinMode(IN1_PIN, OUTPUT);
-  pinMode(IN2_PIN, OUTPUT);
+  pinMode(ENCA,INPUT);
+  pinMode(ENCB,INPUT);
+  pinMode(ENA,OUTPUT);
+  pinMode(IN1,OUTPUT);
+  pinMode(IN2,OUTPUT);
 
   Serial.begin(9600);
   Serial.println("enter number of counts");
   
   while(!Serial);  
 }
-
 
 // the loop function runs over and over again forever
 void loop() {
@@ -36,42 +45,48 @@ void loop() {
     newPos = myEnc.read();
     Serial.println(newPos);
 
-      if (userInput > newPos) {
-        digitalWrite(IN1_PIN, HIGH); // control motor A spins clockwise
-        digitalWrite(IN2_PIN, LOW);  // control motor A spins clockwise
-        analogWrite(ENA_PIN, 50); // control the speed
-        while (userInput > newPos) {
-            //myEnc.write(i);
-            newPos = myEnc.read();
-            Serial.println(newPos);
+    // PID constants
+    float kp = 1;
+    float kd = 0.0;
+    float ki = 0.0;
 
-        }
-        digitalWrite(IN1_PIN, HIGH); // control motor A stops
-        digitalWrite(IN2_PIN, HIGH);  // control motor A stops
-        Serial.println(myEnc.read());
-        Serial.println("enter number of counts");
-        userInput = Serial.parseInt();
 
-      }    
-
-      else if (userInput < newPos) {  
-        digitalWrite(IN1_PIN, LOW); // control motor A spins counterclockwise
-        digitalWrite(IN2_PIN, HIGH);  // control motor A spins counterclockwise
-        analogWrite(ENA_PIN, 50); // control the speed
-        while (userInput < newPos) {
-              //myEnc.write(j);
-              newPos = myEnc.read();
-              Serial.println(newPos);
-
-        }
-
-        digitalWrite(IN1_PIN, HIGH); // control motor A stops
-        digitalWrite(IN2_PIN, HIGH);  // control motor A stops
-        Serial.println(myEnc.read());
-        Serial.println("enter number of counts");
-        userInput = Serial.parseInt();
-      }
+    long currT = micros();
+    float deltaT = ((float) (currT - prevT))/( 1.0e6 );
+    prevT = currT;
+    
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+      pos = newPos;
     }
+    
+    // error
+    int e = pos - userInput;
+
+    // derivative
+    float dedt = (e-eprev)/(deltaT);
+
+    // integral
+    float eintegral = eintegral + e*deltaT;
+
+    // control signal
+    float u = kp*e + kd*dedt + ki*eintegral;
+
+    // motor power
+    float speed = fabs(u);
+    if( speed > 255 ) {
+      speed = 255;
+    }
+    attachInterrupt(digitalPinToInterrupt(ENCA),readEncoder,RISING);
+    setMotor(userInput, newPos, speed, ENA, IN1, IN2);
+
+    eprev = e;
+
+    Serial.print("target count: ");
+    Serial.print(userInput);
+    Serial.print(" actual count: ");
+    Serial.println(pos);
+
+  }
       
     /*if (userInput == 1) {
       digitalWrite(IN1_PIN, HIGH); // control motor A spins clockwise
@@ -112,4 +127,46 @@ void loop() {
     }*/
 }
 
+void setMotor(int userInput, volatile int newPos, int speed, int ENA, int IN1, int IN2){
+  analogWrite(ENA, speed); // control the speed
+  if (userInput > newPos) {
+        digitalWrite(IN1, HIGH); // control motor A spins clockwise
+        digitalWrite(IN2, LOW);  // control motor A spins clockwise
+        /*while (userInput > newPos) {
+            newPos = myEnc.read();
+            Serial.println(newPos);
+
+        }*/
+        digitalWrite(IN1, HIGH); // control motor A stops
+        digitalWrite(IN2, HIGH);  // control motor A stops
+        Serial.println("enter number of counts");
+        userInput = Serial.parseInt();
+
+      }    
+
+      else if (userInput < newPos) {  
+        digitalWrite(IN1, LOW); // control motor A spins counterclockwise
+        digitalWrite(IN2, HIGH);  // control motor A spins counterclockwise
+        /*while (userInput < newPos) {
+              newPos = myEnc.read();
+              Serial.println(newPos);
+
+        }*/
+
+        digitalWrite(IN1, HIGH); // control motor A stops
+        digitalWrite(IN2, HIGH);  // control motor A stops
+        Serial.println("enter number of counts");
+        userInput = Serial.parseInt();
+      }
+}
+
+void readEncoder() {
+  int b = digitalRead(ENCB);
+  if(b > 0){
+    newPos++;
+  }
+  else{
+    newPos--;
+  }
+}
 
