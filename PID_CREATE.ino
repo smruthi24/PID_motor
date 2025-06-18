@@ -5,7 +5,7 @@
  *
  * Tutorial page: https://arduinogetstarted.com/tutorials/arduino-dc-motor
  */
-#include <util/atomic.h>
+
 #include "Encoder.h"
 
 // constants won't change
@@ -16,11 +16,15 @@ const int ENCA = 2;
 const int ENCB = 3;
 Encoder myEnc(ENCA, ENCB);
 volatile int newPos = 0;
-int pos = 0; 
 long prevT = 0;
 float eprev = 0;
 int speed;
 int userInput;
+
+// PID constants
+float kp = 1;
+float kd = 0.0;
+float ki = 0.0;
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -43,24 +47,19 @@ void loop() {
   if (Serial.available()) {
     long userInput = Serial.parseInt();
     newPos = myEnc.read();
+    noInterrupts();
     Serial.println(newPos);
-
-    // PID constants
-    float kp = 1;
-    float kd = 0.0;
-    float ki = 0.0;
-
 
     long currT = micros();
     float deltaT = ((float) (currT - prevT))/( 1.0e6 );
     prevT = currT;
     
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    /*ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
       pos = newPos;
-    }
+    }*/
     
     // error
-    int e = pos - userInput;
+    int e = abs(newPos - userInput);
 
     // derivative
     float dedt = (e-eprev)/(deltaT);
@@ -72,11 +71,9 @@ void loop() {
     float u = kp*e + kd*dedt + ki*eintegral;
 
     // motor power
-    float speed = fabs(u);
-    if( speed > 255 ) {
-      speed = 255;
-    }
-    attachInterrupt(digitalPinToInterrupt(ENCA),readEncoder,RISING);
+    float speed = constrain(u, 0, 255);
+
+    //attachInterrupt(digitalPinToInterrupt(ENCA), setMotor, RISING);//attaching a interrupt to pin d2
     setMotor(userInput, newPos, speed, ENA, IN1, IN2);
 
     eprev = e;
@@ -84,7 +81,7 @@ void loop() {
     Serial.print("target count: ");
     Serial.print(userInput);
     Serial.print(" actual count: ");
-    Serial.println(pos);
+    Serial.println(newPos);
 
   }
       
@@ -132,13 +129,16 @@ void setMotor(int userInput, volatile int newPos, int speed, int ENA, int IN1, i
   if (userInput > newPos) {
         digitalWrite(IN1, HIGH); // control motor A spins clockwise
         digitalWrite(IN2, LOW);  // control motor A spins clockwise
-        /*while (userInput > newPos) {
+        
+        while (userInput > newPos) {
             newPos = myEnc.read();
             Serial.println(newPos);
 
-        }*/
+        }
         digitalWrite(IN1, HIGH); // control motor A stops
         digitalWrite(IN2, HIGH);  // control motor A stops
+        //detachInterrupt(digitalPinToInterrupt(ENCA)); //Removes the interrupt from pin 2;
+        interrupts();
         Serial.println("enter number of counts");
         userInput = Serial.parseInt();
 
@@ -147,26 +147,17 @@ void setMotor(int userInput, volatile int newPos, int speed, int ENA, int IN1, i
       else if (userInput < newPos) {  
         digitalWrite(IN1, LOW); // control motor A spins counterclockwise
         digitalWrite(IN2, HIGH);  // control motor A spins counterclockwise
-        /*while (userInput < newPos) {
+        
+        while (userInput < newPos) {
               newPos = myEnc.read();
               Serial.println(newPos);
 
-        }*/
+        }
 
         digitalWrite(IN1, HIGH); // control motor A stops
         digitalWrite(IN2, HIGH);  // control motor A stops
+        interrupts();
         Serial.println("enter number of counts");
         userInput = Serial.parseInt();
       }
 }
-
-void readEncoder() {
-  int b = digitalRead(ENCB);
-  if(b > 0){
-    newPos++;
-  }
-  else{
-    newPos--;
-  }
-}
-
