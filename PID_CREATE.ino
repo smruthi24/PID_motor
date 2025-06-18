@@ -16,6 +16,7 @@ const int ENCA = 2;
 const int ENCB = 3;
 Encoder myEnc(ENCA, ENCB);
 volatile int newPos = 0;
+volatile int oldPos = 0;
 long prevT = 0;
 float eprev = 0;
 int speed;
@@ -47,16 +48,12 @@ void loop() {
   if (Serial.available()) {
     long userInput = Serial.parseInt();
     newPos = myEnc.read();
-    noInterrupts();
+    //noInterrupts();
     Serial.println(newPos);
 
     long currT = micros();
     float deltaT = ((float) (currT - prevT))/( 1.0e6 );
     prevT = currT;
-    
-    /*ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-      pos = newPos;
-    }*/
     
     // error
     int e = abs(newPos - userInput);
@@ -73,14 +70,15 @@ void loop() {
     // motor power
     float speed = constrain(u, 0, 255);
 
-    //attachInterrupt(digitalPinToInterrupt(ENCA), setMotor, RISING);//attaching a interrupt to pin d2
     setMotor(userInput, newPos, speed, ENA, IN1, IN2);
 
     eprev = e;
 
+
     Serial.print("target count: ");
     Serial.print(userInput);
     Serial.print(" actual count: ");
+    newPos = myEnc.read();
     Serial.println(newPos);
 
   }
@@ -137,8 +135,7 @@ void setMotor(int userInput, volatile int newPos, int speed, int ENA, int IN1, i
         }
         digitalWrite(IN1, HIGH); // control motor A stops
         digitalWrite(IN2, HIGH);  // control motor A stops
-        //detachInterrupt(digitalPinToInterrupt(ENCA)); //Removes the interrupt from pin 2;
-        interrupts();
+        //interrupts();
         Serial.println("enter number of counts");
         userInput = Serial.parseInt();
 
