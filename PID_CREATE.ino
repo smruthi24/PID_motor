@@ -74,7 +74,6 @@ void loop() {
 
     eprev = e;
 
-
     Serial.print("target count: ");
     Serial.print(userInput);
     Serial.print(" actual count: ");
