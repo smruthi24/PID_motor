@@ -124,7 +124,7 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
       int u = kp*e + kd*dedt + ki*eintegral;
 
       // motor power
-      speed = constrain(u, 0, 255);
+      speed = constrain(u, 0, 100);
 
       analogWrite(ENA, speed); // control the speed
 
@@ -135,9 +135,6 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
         
     digitalWrite(IN1, HIGH); // control motor A stops
     digitalWrite(IN2, HIGH);  // control motor A stops
-    //interrupts();
-    Serial.println("enter number of counts");
-    userInput = Serial.parseInt();
 
   }    
 
@@ -163,7 +160,7 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
       int u = kp*e + kd*dedt + ki*eintegral;
 
       // motor power
-      speed = constrain(u, 0, 255);
+      speed = constrain(u, 0, 100);
 
       analogWrite(ENA, speed); // control the speed
 
@@ -174,9 +171,6 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
 
     digitalWrite(IN1, HIGH); // control motor A stops
     digitalWrite(IN2, HIGH);  // control motor A stops
-    //interrupts();
-    Serial.println("enter number of counts");
-    userInput = Serial.parseInt();
   }
 
   Serial.print("target count: ");
@@ -184,4 +178,6 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
   Serial.print(" actual count: ");
   newPos = myEnc.read();
   Serial.println(newPos);
+  Serial.println("enter number of counts");
+  userInput = Serial.parseInt();
 }
