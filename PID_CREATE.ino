@@ -27,7 +27,7 @@ float dedt;
 float eintegral;
 
 // PID constants
-float kp = 1;
+float kp = 0.6;
 float kd = 0.0;
 float ki = 0.0;
 
@@ -124,7 +124,7 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
       int u = kp*e + kd*dedt + ki*eintegral;
 
       // motor power
-      speed = constrain(u, 0, 100);
+      speed = constrain(u, 0, 255);
 
       analogWrite(ENA, speed); // control the speed
 
@@ -173,11 +173,19 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
     digitalWrite(IN2, HIGH);  // control motor A stops
   }
 
+  Serial.println("start spool down");
+  while (newPos != myEnc.read()) {
+    newPos = myEnc.read();
+    delay(10);
+    Serial.println(newPos);
+  }
+  Serial.println("motor stopped");
   Serial.print("target count: ");
   Serial.print(userInput);
   Serial.print(" actual count: ");
   newPos = myEnc.read();
   Serial.println(newPos);
+  delay(1000);
   Serial.println("enter number of counts");
   userInput = Serial.parseInt();
 }
