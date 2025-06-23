@@ -20,6 +20,7 @@ long prevT = 0;
 float eprev = 0;
 int speed;
 long userInput;
+int tol1;
 long currT;
 float deltaT;
 int e;
@@ -27,9 +28,9 @@ float dedt;
 float eintegral;
 
 // PID constants
-float kp = 0.7; // d Tr, i O, d Ts, d SSE
-float ki = 0.02; // d Tr, i O, i Ts, elim SSE
-float kd = 0.0; // sd Tr, d O, d Ts, N/A SSE
+float kp = 0.5; // d Tr, i O, d Ts, d SSE lower
+float ki = 0.04; // d Tr, i O, i Ts, elim SSE higher
+float kd = 0.03; // sd Tr, d O, d Ts, N/A SSE lower
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -52,6 +53,7 @@ void loop() {
   if (Serial.available()) {
     userInput = Serial.parseInt();
     newPos = myEnc.read();
+    tol1 = userInput*0.75;
     //noInterrupts();
     Serial.println(newPos);
 
@@ -102,11 +104,11 @@ void loop() {
 
 void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, float ki, long userInput, volatile int newPos, int speed, int ENA, int IN1, int IN2){
 
-  if (userInput > newPos) {
+  if (userInput - tol1 > newPos) {
     digitalWrite(IN1, HIGH); // control motor A spins clockwise
     digitalWrite(IN2, LOW);  // control motor A spins clockwise
         
-    while (userInput > newPos) {
+    while (userInput - tol1 > newPos) {
 
       currT = micros();
       deltaT = ((float) (currT - prevT))/( 1.0e6 );
@@ -139,11 +141,11 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
 
   }    
 
-  else if (userInput < newPos) {  
+  else if (userInput + tol1 < newPos) {  
     digitalWrite(IN1, LOW); // control motor A spins counterclockwise
     digitalWrite(IN2, HIGH);  // control motor A spins counterclockwise
         
-    while (userInput < newPos) {
+    while (userInput + tol1 < newPos) {
 
       currT = micros();
       deltaT = ((float) (currT - prevT))/( 1.0e6 );
@@ -161,7 +163,7 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
       int u = kp*e + kd*dedt + ki*eintegral;
 
       // motor power
-      speed = constrain(u, 0, 100);
+      speed = constrain(u, 0, 255);
 
       analogWrite(ENA, speed); // control the speed
 
@@ -187,13 +189,13 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
   Serial.print(" actual count: ");
   newPos = myEnc.read();
   Serial.println(newPos);
-  delay(1000);
-  Serial.println("enter number of counts");
-  userInput = Serial.parseInt();
   Serial.print(kp);
   Serial.print(" ");
   Serial.print(ki);
   Serial.print(" ");
   Serial.println(kd);
+  delay(1000);
+  Serial.println("enter number of counts");
+  userInput = Serial.parseInt();
 
 }
