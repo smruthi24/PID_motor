@@ -27,9 +27,9 @@ float dedt;
 float eintegral;
 
 // PID constants
-float kp = 0.6;
-float kd = 0.0;
-float ki = 0.0;
+float kp = 0.7; // d Tr, i O, d Ts, d SSE
+float ki = 0.02; // d Tr, i O, i Ts, elim SSE
+float kd = 0.0; // sd Tr, d O, d Ts, N/A SSE
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -129,6 +129,7 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
       analogWrite(ENA, speed); // control the speed
 
       newPos = myEnc.read();
+      delay(10);
       Serial.println(newPos);
 
     }
@@ -165,6 +166,7 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
       analogWrite(ENA, speed); // control the speed
 
       newPos = myEnc.read();
+      delay(10);
       Serial.println(newPos);
 
     }
@@ -188,4 +190,10 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
   delay(1000);
   Serial.println("enter number of counts");
   userInput = Serial.parseInt();
+  Serial.print(kp);
+  Serial.print(" ");
+  Serial.print(ki);
+  Serial.print(" ");
+  Serial.println(kd);
+
 }
