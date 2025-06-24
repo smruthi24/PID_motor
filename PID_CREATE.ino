@@ -29,10 +29,11 @@ float dedt;
 float eintegral;
 int distance;
 
-// PID constants
+//PID constants
 float kp = 0.1; // d Tr, i O, d Ts, d SSE lower
 float ki = 0.006; // d Tr, i O, i Ts, elim SSE higher
 float kd = 0.002; // sd Tr, d O, d Ts, N/A SSE lower
+
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -55,12 +56,18 @@ void loop() {
   if (Serial.available()) {
     userInput = Serial.parseInt();
     distance = oldPos - userInput;
-    if (distance <= 100) {
+    /*if (distance <= 100) {
       tol1 = abs(distance)*0.25;
+      kp = 0.4; // d Tr, i O, d Ts, d SSE lower
+      ki = 0.006; // d Tr, i O, i Ts, elim SSE higher
+      kd = 0.002; // sd Tr, d O, d Ts, N/A SSE lower
     }
     else {
       tol1 = abs(distance)*0.5;
-    }
+      kp = 0.1; // d Tr, i O, d Ts, d SSE lower
+      ki = 0.006; // d Tr, i O, i Ts, elim SSE higher
+      kd = 0.002; // sd Tr, d O, d Ts, N/A SSE lower
+    }*/
     
     newPos = myEnc.read();
     //noInterrupts();
@@ -142,11 +149,11 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
       newPos = myEnc.read();
       delay(10);
       Serial.print(newPos);
-      Serial.print(" ");
+      Serial.print("    ");
       Serial.print(kp*e);
-      Serial.print(" ");
+      Serial.print("    ");
       Serial.print(ki*eintegral);
-      Serial.print(" ");
+      Serial.print("    ");
       Serial.println(kd*dedt);
 
     }
@@ -205,11 +212,11 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
       newPos = myEnc.read();
       delay(10);
       Serial.print(newPos);
-      Serial.print(" ");
+      Serial.print("    ");
       Serial.print(kp*e);
-      Serial.print(" ");
+      Serial.print("    ");
       Serial.print(ki*eintegral);
-      Serial.print(" ");
+      Serial.print("    ");
       Serial.println(kd*dedt);
 
     }
@@ -264,11 +271,11 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
     newPos = myEnc.read();
     delay(10);
     Serial.print(newPos);
-      Serial.print(" ");
+      Serial.print("    ");
       Serial.print(kp*e);
-      Serial.print(" ");
+      Serial.print("    ");
       Serial.print(ki*eintegral);
-      Serial.print(" ");
+      Serial.print("    ");
       Serial.println(kd*dedt);
   }
 
