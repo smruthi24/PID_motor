@@ -21,16 +21,18 @@ float eprev = 0;
 int speed;
 long userInput;
 int tol1;
+int oldPos;
 long currT;
 float deltaT;
 int e;
 float dedt;
 float eintegral;
+int distance;
 
 // PID constants
-float kp = 0.5; // d Tr, i O, d Ts, d SSE lower
-float ki = 0.04; // d Tr, i O, i Ts, elim SSE higher
-float kd = 0.03; // sd Tr, d O, d Ts, N/A SSE lower
+float kp = 0.1; // d Tr, i O, d Ts, d SSE lower
+float ki = 0.006; // d Tr, i O, i Ts, elim SSE higher
+float kd = 0.002; // sd Tr, d O, d Ts, N/A SSE lower
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -52,15 +54,22 @@ void loop() {
 
   if (Serial.available()) {
     userInput = Serial.parseInt();
+    distance = oldPos - userInput;
+    if (distance <= 100) {
+      tol1 = abs(distance)*0.25;
+    }
+    else {
+      tol1 = abs(distance)*0.5;
+    }
+    
     newPos = myEnc.read();
-    tol1 = userInput*0.75;
     //noInterrupts();
     Serial.println(newPos);
 
     setMotor(prevT, eprev, eintegral, kp, kd, ki, userInput, newPos, speed, ENA, IN1, IN2);
 
     eprev = e;
-
+    oldPos = userInput;
   }
       
     /*if (userInput == 1) {
@@ -132,13 +141,39 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
 
       newPos = myEnc.read();
       delay(10);
-      Serial.println(newPos);
+      Serial.print(newPos);
+      Serial.print(" ");
+      Serial.print(kp*e);
+      Serial.print(" ");
+      Serial.print(ki*eintegral);
+      Serial.print(" ");
+      Serial.println(kd*dedt);
 
     }
         
     digitalWrite(IN1, HIGH); // control motor A stops
     digitalWrite(IN2, HIGH);  // control motor A stops
 
+    currT = micros();
+    deltaT = ((float) (currT - prevT))/( 1.0e6 );
+    prevT = currT;
+        
+    // error
+    e = abs(newPos - userInput);
+
+    // derivative
+    dedt = (e-eprev)/(deltaT);
+
+    // integral
+    eintegral = eintegral + e*deltaT;
+
+    int u = kp*e + kd*dedt + ki*eintegral;
+
+    // motor power
+    speed = constrain(u, 0, 255);
+
+    analogWrite(ENA, speed); // control the speed
+    
   }    
 
   else if (userInput + tol1 < newPos) {  
@@ -169,20 +204,74 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
 
       newPos = myEnc.read();
       delay(10);
-      Serial.println(newPos);
+      Serial.print(newPos);
+      Serial.print(" ");
+      Serial.print(kp*e);
+      Serial.print(" ");
+      Serial.print(ki*eintegral);
+      Serial.print(" ");
+      Serial.println(kd*dedt);
 
     }
 
     digitalWrite(IN1, HIGH); // control motor A stops
     digitalWrite(IN2, HIGH);  // control motor A stops
+
+    currT = micros();
+    deltaT = ((float) (currT - prevT))/( 1.0e6 );
+    prevT = currT;
+        
+    // error
+    e = abs(newPos - userInput);
+
+    // derivative
+    dedt = (e-eprev)/(deltaT);
+
+    // integral
+    eintegral = eintegral + e*deltaT;
+
+    int u = kp*e + kd*dedt + ki*eintegral;
+
+    // motor power
+    speed = constrain(u, 0, 255);
+
+    analogWrite(ENA, speed); // control the speed
   }
 
   Serial.println("start spool down");
   while (newPos != myEnc.read()) {
+
+    currT = micros();
+    deltaT = ((float) (currT - prevT))/( 1.0e6 );
+    prevT = currT;
+        
+    // error
+    e = abs(newPos - userInput);
+
+    // derivative
+    dedt = (-e+eprev)/(deltaT);
+
+    // integral
+    eintegral = eintegral - e*deltaT;
+
+    int v = -kp*e - kd*dedt - ki*eintegral;
+
+    // motor power
+    speed = constrain(v, 0, 255);
+
+    analogWrite(ENA, speed); // control the speed
+    
     newPos = myEnc.read();
     delay(10);
-    Serial.println(newPos);
+    Serial.print(newPos);
+      Serial.print(" ");
+      Serial.print(kp*e);
+      Serial.print(" ");
+      Serial.print(ki*eintegral);
+      Serial.print(" ");
+      Serial.println(kd*dedt);
   }
+
   Serial.println("motor stopped");
   Serial.print("target count: ");
   Serial.print(userInput);
