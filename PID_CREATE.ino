@@ -58,9 +58,9 @@ void loop() {
     distance = oldPos - userInput;
     /*if (distance <= 100) {
       tol1 = abs(distance)*0.25;
-      kp = 0.4; // d Tr, i O, d Ts, d SSE lower
-      ki = 0.006; // d Tr, i O, i Ts, elim SSE higher
-      kd = 0.002; // sd Tr, d O, d Ts, N/A SSE lower
+      kp = 0.1; // d Tr, i O, d Ts, d SSE lower
+      ki = 0.03; // d Tr, i O, i Ts, elim SSE higher
+      kd = 0.02; // sd Tr, d O, d Ts, N/A SSE lower
     }
     else {
       tol1 = abs(distance)*0.5;
