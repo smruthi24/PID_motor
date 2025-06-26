@@ -20,7 +20,8 @@ long prevT = 0;
 float eprev = 0;
 int speed;
 long userInput;
-int tol1;
+float tol1;
+float tol2;
 int oldPos;
 long currT;
 float deltaT;
@@ -29,12 +30,12 @@ float dedt;
 float eintegral;
 int distance;
 int speedprev;
-float a = 32.0;
+float a = 3.2;
 
 //PID constants
-float kp = 0.5; // d Tr, i O, d Ts, d SSE lower
-float ki = 0.007; // d Tr, i O, i Ts, elim SSE higher
-float kd = 0.003; // sd Tr, d O, d Ts, N/A SSE lower
+float kp = 0.1; // d Tr, i O, d Ts, d SSE lower
+float ki = 0.0; // d Tr, i O, i Ts, elim SSE higher
+float kd = 0.0; // sd Tr, d O, d Ts, N/A SSE lower
 
 
 
@@ -59,7 +60,8 @@ void loop() {
   if (Serial.available()) {
     userInput = Serial.parseInt();
     distance = oldPos - userInput;
-    tol1 = abs(distance)*0.05;
+    tol1 = abs(distance)*0.15;
+    tol2 = abs(distance)*0.05;
     /*if (distance <= 100) {
       tol1 = abs(distance)*0.25;
       kp = 0.1; // d Tr, i O, d Ts, d SSE lower
@@ -77,15 +79,23 @@ void loop() {
     //noInterrupts();
     Serial.println(newPos);
 
-    setMotor(prevT, eprev, eintegral, kp, kd, ki, userInput, newPos, speed, ENA, IN1, IN2);
+    /*setMotor(prevT, eprev, eintegral, kp, kd, ki, userInput, newPos, speed, ENA, IN1, IN2, tol1);
 
     eprev = e;
     oldPos = userInput;
-    newPos = myEnc.read();
+    newPos = myEnc.read();*/
 
-    if (newPos < userInput || newPos > userInput) {
-      Serial.println("fine tuning");
-      setMotor(prevT, eprev, eintegral, kp, kd, ki, userInput, newPos, speed, ENA, IN1, IN2);
+    if (newPos <= userInput - tol2 || newPos >= userInput + tol2) {
+      while (newPos <= userInput - tol2 || newPos >= userInput + tol2) {
+        Serial.println("fine tuning");
+        setMotor(prevT, eprev, eintegral, kp, kd, ki, userInput, newPos, speed, ENA, IN1, IN2, tol2);
+        eprev = e;
+        oldPos = userInput;
+        newPos = myEnc.read();
+        
+      }
+      digitalWrite(IN1, HIGH); // control motor A stops
+      digitalWrite(IN2, HIGH);  // control motor A stops
     }
 
     Serial.println("motor stopped");
@@ -105,13 +115,13 @@ void loop() {
   }
 }
 
-void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, float ki, long userInput, volatile int newPos, int speed, int ENA, int IN1, int IN2){
+void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, float ki, long userInput, volatile int newPos, int speed, int ENA, int IN1, int IN2, float tol){
 
-  if (userInput - tol1 > newPos) {
+  if (userInput > newPos) {
     digitalWrite(IN1, HIGH); // control motor A spins clockwise
     digitalWrite(IN2, LOW);  // control motor A spins clockwise
         
-    while (userInput - tol1 > newPos) {
+    while (userInput - tol > newPos) {
 
       currT = micros();
       deltaT = ((float) (currT - prevT))/( 1.0e6 );
@@ -129,11 +139,9 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
       int u = kp*e + kd*dedt + ki*eintegral;
 
       // motor power
-      speed = constrain(u, 0, 100);
+      speed = constrain(u + speedprev + a, 0, 100);
 
       analogWrite(ENA, speed); // control the speed
-
-      speed = speedprev + a;
 
       newPos = myEnc.read();
       delay(10);
@@ -155,32 +163,34 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
     digitalWrite(IN2, HIGH);  // control motor A stops
 
     currT = micros();
-      deltaT = ((float) (currT - prevT))/( 1.0e6 );
-      prevT = currT;
+    deltaT = ((float) (currT - prevT))/( 1.0e6 );
+    prevT = currT;
         
-      // error
-      e = abs(newPos - userInput);
+    // error
+    e = abs(newPos - userInput);
 
-      // derivative
-      dedt = (e-eprev)/(deltaT);
+    // derivative
+    dedt = (e-eprev)/(deltaT);
 
-      // integral
-      eintegral = eintegral + e*deltaT;
+    // integral
+    eintegral = eintegral + e*deltaT;
 
-      int u = kp*e + kd*dedt + ki*eintegral;
+    int u = kp*e + kd*dedt + ki*eintegral;
 
-      // motor power
-      speed = constrain(u, 0, 100);
+    // motor power
+    speed = constrain(u - speedprev - a, 0, 100);
 
-      analogWrite(ENA, 0); // control the speed
+    analogWrite(ENA, speed); // control the speed
+
+    speedprev = speed;
     
   }    
 
-  else if (userInput + tol1 < newPos) {  
+  else if (userInput < newPos) {  
     digitalWrite(IN1, LOW); // control motor A spins counterclockwise
     digitalWrite(IN2, HIGH);  // control motor A spins counterclockwise
         
-    while (userInput + tol1 < newPos) {
+    while (userInput + tol < newPos) {
 
       currT = micros();
       deltaT = ((float) (currT - prevT))/( 1.0e6 );
@@ -198,11 +208,9 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
       int u = kp*e + kd*dedt + ki*eintegral;
 
       // motor power
-      speed = constrain(u, 0, 100);
+      speed = constrain(u + speedprev + a, 0, 100);
 
       analogWrite(ENA, speed); // control the speed
-
-      speed = speedprev + a;
 
       newPos = myEnc.read();
       delay(10);
@@ -239,11 +247,12 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
       int u = kp*e + kd*dedt + ki*eintegral;
 
       // motor power
-      speed = constrain(u, 0, 100);
+      speed = constrain(u - speedprev - a, 0, 100);
 
-      analogWrite(ENA, 0); // control the speed
+      analogWrite(ENA, speed); // control the speed
 
       speedprev = speed;
+
   }
 
   Serial.println("start spool down");
@@ -262,12 +271,10 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
       // integral
       eintegral = eintegral + e*deltaT;
 
-      int v = kp*e + kd*dedt + ki*eintegral;
-
-      //speed = speedprev - a;
+      int u = kp*e + kd*dedt + ki*eintegral;
 
       // motor power
-      speed = constrain(v, 0, 100);
+      speed = constrain(u - speedprev - a, 0, 100);
 
       analogWrite(ENA, speed); // control the speed
 
@@ -283,7 +290,7 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
       Serial.print("    speed: ");
       Serial.println(speed);
 
-      //speedprev = speed;
+      speedprev = speed;
   }
 
 }
