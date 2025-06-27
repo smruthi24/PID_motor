@@ -33,9 +33,9 @@ int speedprev;
 float a = 3.2;
 
 //PID constants
-float kp = 0.1; // d Tr, i O, d Ts, d SSE lower
-float ki = 0.0; // d Tr, i O, i Ts, elim SSE higher
-float kd = 0.0; // sd Tr, d O, d Ts, N/A SSE lower
+float kp = 2.0; // d Tr, i O, d Ts, d SSE lower
+float ki = 0.003; // d Tr, i O, i Ts, elim SSE higher
+float kd = 0.001; // sd Tr, d O, d Ts, N/A SSE lower
 
 
 
@@ -60,8 +60,8 @@ void loop() {
   if (Serial.available()) {
     userInput = Serial.parseInt();
     distance = oldPos - userInput;
-    tol1 = abs(distance)*0.15;
-    tol2 = abs(distance)*0.05;
+    tol1 = abs(distance)*0.25;
+    tol2 = abs(distance)*0.10;
     /*if (distance <= 100) {
       tol1 = abs(distance)*0.25;
       kp = 0.1; // d Tr, i O, d Ts, d SSE lower
@@ -294,5 +294,7 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
   }
 
 }
+
+
 
 
