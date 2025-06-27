@@ -22,6 +22,8 @@ int speed;
 long userInput;
 float tol1;
 float tol2;
+float tol3;
+float tol4;
 int oldPos;
 long currT;
 float deltaT;
@@ -30,14 +32,12 @@ float dedt;
 float eintegral;
 int distance;
 int speedprev;
-float a = 3.2;
+float a;
 
 //PID constants
 float kp = 2.0; // d Tr, i O, d Ts, d SSE lower
 float ki = 0.003; // d Tr, i O, i Ts, elim SSE higher
 float kd = 0.001; // sd Tr, d O, d Ts, N/A SSE lower
-
-
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -60,30 +60,35 @@ void loop() {
   if (Serial.available()) {
     userInput = Serial.parseInt();
     distance = oldPos - userInput;
-    tol1 = abs(distance)*0.25;
-    tol2 = abs(distance)*0.10;
-    /*if (distance <= 100) {
-      tol1 = abs(distance)*0.25;
-      kp = 0.1; // d Tr, i O, d Ts, d SSE lower
-      ki = 0.03; // d Tr, i O, i Ts, elim SSE higher
-      kd = 0.02; // sd Tr, d O, d Ts, N/A SSE lower
+
+      a = 2.5;
+      tol1 = abs(distance)*0.75;
+      tol2 = abs(distance)*0.50;
+      tol3 = abs(distance)*0.25;
+      tol4 = abs(distance)*0.15;
+
+    /*if (distance <= 200) {
+      a = 2.5;
+      tol1 = abs(distance)*0.75;
+      tol2 = abs(distance)*0.50;
+      tol3 = abs(distance)*0.25;
+      tol4 = abs(distance)*0.15;
+    }
+    else if (distance <= 500 && distance > 200) {
+      a = 2.0;
+      tol1 = abs(distance)*0.60;
+      tol2 = abs(distance)*0.30;
+      tol3 = abs(distance)*0.15;
     }
     else {
-      tol1 = abs(distance)*0.5;
-      kp = 0.1; // d Tr, i O, d Ts, d SSE lower
-      ki = 0.006; // d Tr, i O, i Ts, elim SSE higher
-      kd = 0.002; // sd Tr, d O, d Ts, N/A SSE lower
+      a = 3.2;
+      tol1 = abs(distance)*0.25;
+      tol2 = abs(distance)*0.10;
     }*/
     
     newPos = myEnc.read();
     //noInterrupts();
     Serial.println(newPos);
-
-    /*setMotor(prevT, eprev, eintegral, kp, kd, ki, userInput, newPos, speed, ENA, IN1, IN2, tol1);
-
-    eprev = e;
-    oldPos = userInput;
-    newPos = myEnc.read();*/
 
     if (newPos <= userInput - tol2 || newPos >= userInput + tol2) {
       while (newPos <= userInput - tol2 || newPos >= userInput + tol2) {
@@ -94,6 +99,32 @@ void loop() {
         newPos = myEnc.read();
         
       }
+      digitalWrite(IN1, HIGH); // control motor A stops
+      digitalWrite(IN2, HIGH);  // control motor A stops
+    }
+
+    if (newPos <= userInput - tol3 || newPos >= userInput + tol3) {
+      while (newPos <= userInput - tol3 || newPos >= userInput + tol3) {
+        Serial.println("fine tuning");
+        setMotor(prevT, eprev, eintegral, kp, kd, ki, userInput, newPos, speed, ENA, IN1, IN2, tol3);
+        eprev = e;
+        oldPos = userInput;
+        newPos = myEnc.read();
+
+        }
+      digitalWrite(IN1, HIGH); // control motor A stops
+      digitalWrite(IN2, HIGH);  // control motor A stops
+    }
+
+    if (newPos <= userInput - tol4 || newPos >= userInput + tol4) {
+      while (newPos <= userInput - tol4 || newPos >= userInput + tol4) {
+        Serial.println("fine tuning");
+        setMotor(prevT, eprev, eintegral, kp, kd, ki, userInput, newPos, speed, ENA, IN1, IN2, tol4);
+        eprev = e;
+        oldPos = userInput;
+        newPos = myEnc.read();
+
+        }
       digitalWrite(IN1, HIGH); // control motor A stops
       digitalWrite(IN2, HIGH);  // control motor A stops
     }
@@ -294,7 +325,3 @@ void setMotor(long prevT, float eprev, float eintegral, float kp, float kd, floa
   }
 
 }
-
-
-
-
