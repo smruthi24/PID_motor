@@ -61,20 +61,14 @@ void loop() {
     userInput = Serial.parseInt();
     distance = oldPos - userInput;
 
-      a = 2.5;
-      tol1 = abs(distance)*0.75;
-      tol2 = abs(distance)*0.50;
-      tol3 = abs(distance)*0.25;
-      tol4 = abs(distance)*0.15;
-
-    /*if (distance <= 200) {
-      a = 2.5;
+    if (distance <= 500) {
+      a = 1.3;
       tol1 = abs(distance)*0.75;
       tol2 = abs(distance)*0.50;
       tol3 = abs(distance)*0.25;
       tol4 = abs(distance)*0.15;
     }
-    else if (distance <= 500 && distance > 200) {
+    else if (distance <= 700 && distance > 500) {
       a = 2.0;
       tol1 = abs(distance)*0.60;
       tol2 = abs(distance)*0.30;
@@ -84,7 +78,7 @@ void loop() {
       a = 3.2;
       tol1 = abs(distance)*0.25;
       tol2 = abs(distance)*0.10;
-    }*/
+    }
     
     newPos = myEnc.read();
     //noInterrupts();
