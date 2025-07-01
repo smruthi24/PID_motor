@@ -20,14 +20,15 @@ float eintegral;
 int distance;
 int speedprev;
 
-long currT = millis();
-float tol = 0.05;
+long currT;
+float tol = 0.3;
 long totT = 5000;
 float a = 3.7;
+
 //PID constants
 float kp = 2.0; // d Tr, i O, d Ts, d SSE lower
-float ki = 0.003; // d Tr, i O, i Ts, elim SSE higher
-float kd = 0.001; // sd Tr, d O, d Ts, N/A SSE lower
+float ki = 0.0015; // d Tr, i O, i Ts, elim SSE higher
+float kd = 0.0055; // sd Tr, d O, d Ts, N/A SSE lower
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -62,6 +63,7 @@ void loop() {
         eprev = e;
         oldPos = userInput;
         newPos = myEnc.read();
+        Serial.println(newPos);
         
       }
       digitalWrite(IN1, HIGH); // control motor A stops
@@ -88,7 +90,7 @@ void loop() {
 
 void setMotor(long prevT, long totT, float eprev, float eintegral, float kp, float kd, float ki, long userInput, volatile int newPos, int speed, int ENA, int IN1, int IN2, float tol){
 
-  if (userInput > newPos) {
+  if (userInput - tol > newPos) {
     digitalWrite(IN1, HIGH); // control motor A spins clockwise
     digitalWrite(IN2, LOW);  // control motor A spins clockwise
         
@@ -131,7 +133,6 @@ void setMotor(long prevT, long totT, float eprev, float eintegral, float kp, flo
     while (currT <= 0.66*totT && currT >= 0.33*totT) {
 
       currT = micros();
-      //deltaT = ((float) (currT - prevT))/( 1.0e6 );
       prevT = currT;
 
       // motor power
@@ -185,7 +186,7 @@ void setMotor(long prevT, long totT, float eprev, float eintegral, float kp, flo
     
   }    
 
-  else if (userInput < newPos) {  
+  else if (userInput + tol < newPos) {  
     digitalWrite(IN1, LOW); // control motor A spins counterclockwise
     digitalWrite(IN2, HIGH);  // control motor A spins counterclockwise
         
@@ -228,7 +229,6 @@ void setMotor(long prevT, long totT, float eprev, float eintegral, float kp, flo
     while (currT <= 0.66*totT && currT >= 0.33*totT) {
 
       currT = micros();
-      //deltaT = ((float) (currT - prevT))/( 1.0e6 );
       prevT = currT;
 
       // motor power
@@ -239,12 +239,6 @@ void setMotor(long prevT, long totT, float eprev, float eintegral, float kp, flo
       newPos = myEnc.read();
       delay(10);
       Serial.print(newPos);
-      Serial.print("    kp*e: ");
-      Serial.print(kp*e);
-      Serial.print("    ki*e: ");
-      Serial.print(ki*eintegral);
-      Serial.print("    kd*e: ");
-      Serial.print(kd*dedt);
       Serial.print("    speed: ");
       Serial.println(speed);
 
