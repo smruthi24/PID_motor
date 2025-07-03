@@ -9,36 +9,12 @@
 #include "Encoder.h"
 
 // constants won't change
-const int ENA = 12; // the Arduino pin connected to the EN1 pin L298N
-const int IN1 = 6; // the Arduino pin connected to the IN1 pin L298N
-const int IN2 = 7; // the Arduino pin connected to the IN2 pin L298N
-const int ENCA = 2;
-const int ENCB = 3;
+const int ENA = 12, IN1 = 6, IN2 = 7, ENCA = 2, ENCB = 3; // the Arduino pin connected to the EN1 pin L298N
 Encoder myEnc(ENCA, ENCB);
 volatile int newPos = 0;
-long prevT = 0;
-float eprev = 0;
-int speed;
-long userInput;
-float tol;
-int oldPos;
-long currT;
-float deltaT;
-int e;
-float dedt;
-float eintegral;
-long distance;
-float velocity;
-long lastPos;
-float v;
-int u = 0;
-long totT = 3;
-long startT;
-long prevstartT = 0;
-long abT;
-float a = 100;
-int vmax = 100;
-
+long prevT = 0, userInput, currT, distance, lastPos, totT = 3, startT, prevstartT = 0, abT;
+float eprev = 0, tol, deltaT, dedt, eintegral, velocity, v, a = 100;
+int speed, oldPos, e, u = 0, vmax = 100; 
 
 //PID constants
 float kp = 0.7; // d Tr, i O, d Ts, d SSE lower
