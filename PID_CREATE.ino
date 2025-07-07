@@ -1,18 +1,18 @@
 #include "Encoder.h"
-
+// set delT to 10 set totT equation make function for x position and for PID constants
 // constants won't change
 const int ENA = 12, IN1 = 6, IN2 = 7, ENCA = 2, ENCB = 3; // the Arduino pin connected to the EN1 pin L298N
 volatile int newPos = 0;
-long ti = 0, userInput, t, distance, startT, ta;
-float tol, delT, ederiv, einteg, a = 500, totT = 3;
-int speed, oldPos, er, eri, u = 0, vmax = 100, xa, xb, xc;
+long ti = 0, userInput, t, distance, startT, totT;
+int speed, oldPos, er, eri, u = 0, a = 10, vmax = 100, xa, xb, xc, x;
+float tolm, tolp, delT = 10/(1.0e6), ederiv, einteg, ta, tb;
 
 Encoder myEnc(ENCA, ENCB);
 
 //PID constants
 float kp = 0.6; // d Tr, i O, d Ts, d SSE lower
 float ki = 0.03; // d Tr, i O, i Ts, elim SSE higher
-float kd = 0.02; // sd Tr, d O, d Ts, N/A SSE lower
+float kd = 0.002; // sd Tr, d O, d Ts, N/A SSE lower
 
 void setup() {
   // initialize digital pins as outputs.
@@ -28,250 +28,121 @@ void setup() {
   while(!Serial);  
 }
 
-void loop() {
+void loop () {
 
   if (Serial.available()) {
-
     userInput = Serial.parseInt();
     Serial.print("target: ");
-    Serial.println(userInput);
-    distance = abs(oldPos - userInput);
-    tol = 0.05*distance;
+    Serial.print(userInput);
     newPos = myEnc.read();
     Serial.println(newPos);
 
-    while (newPos <= userInput - tol || newPos >= userInput + tol) {
+    distance = oldPos - userInput;
+    tolm = userInput - abs(distance) * 0.05;
+    tolp = userInput + abs(distance) * 0.05;
+    totT = (distance*a + vmax*vmax) / (a*vmax);
 
-      setMotor();
-      oldPos = userInput;
-      newPos = myEnc.read();
-      Serial.println(newPos);
-
+    while (newPos <= tolm|| newPos >= tolp) {
+      startT = micros();
+      motorMove(distance);
+      vProf(distance);
     }
 
-    digitalWrite(IN1, HIGH); // control motor A stops
-    digitalWrite(IN2, HIGH);  // control motor A stops
+  digitalWrite(IN1, HIGH); // control motor A stops
+  digitalWrite(IN2, HIGH);  // control motor A stops
 
-    Serial.println("motor stopped");
-    Serial.print("target count: ");
-    Serial.print(userInput);
-    Serial.print(" actual count: ");
-    newPos = myEnc.read();
-    Serial.println(newPos);
-    Serial.print(kp);
-    Serial.print(" ");
-    Serial.print(ki);
-    Serial.print(" ");
-    Serial.println(kd);
-    delay(1000);
-    Serial.println("enter number of counts");
-    userInput = Serial.parseInt();
+
   }
 
 }
 
-void setMotor() {
-  
-  if (userInput - tol > newPos) {
+void motorMove(long distance) {
+  if (distance > 0) {
     digitalWrite(IN1, HIGH); // control motor A spins clockwise
     digitalWrite(IN2, LOW);  // control motor A spins clockwise
   }
 
-  else if (userInput + tol < newPos) {  
+  else if (distance < 0) {
     digitalWrite(IN1, LOW); // control motor A spins counterclockwise
     digitalWrite(IN2, HIGH);  // control motor A spins counterclockwise
   }
-    
-  startT = micros();
 
+  else {
+    digitalWrite(IN1, HIGH); // control motor A stops
+    digitalWrite(IN2, HIGH);  // control motor A stops
+  }
+
+}
+
+void vProf(long distance) {
+  
   if (distance <= (0.5*totT*vmax)) {
+    ta = 0.5*totT*vmax;
     t = micros() - startT;
-    while (t <= (0.5*totT*(1.0e6))) { // convert totT to microseconds
-      t = micros() - startT;
-      Serial.print("time: ");
-      Serial.print(t);
-      
+    Serial.print("time: ");
+    Serial.println(t);
+
+    while (t < ta) {
       xa = 0.5*a*pow((float)t / 1.0e6, 2); // convert t to seconds
-      delT = (float)(t - ti) / (1.0e6); // convert t to seconds
-      ti = t;
-
-      newPos = myEnc.read();
-      er = (int)(xa - newPos);
-      ederiv = (er - eri) / delT;
-      einteg += er*delT;
-
-      u = kp*er + ki*einteg + kd*ederiv;
-      speed = constrain(u, 0, 100);
-      analogWrite(ENA, speed);
-
-      newPos = myEnc.read();
-      delay(10);
-      Serial.print(" position: ");
-      Serial.print(newPos);
-      Serial.print(" kp*e: ");
-      Serial.print(kp*er);
-      Serial.print(" ki*e: ");
-      Serial.print(ki*einteg);
-      Serial.print(" kd*e: ");
-      Serial.print(kd*ederiv);
-      Serial.print(" speed: ");
-      Serial.println(speed);
-
-      ta = t;
+      PIDcalc(xa);
       t = micros() - startT;
     }
 
-    while (t > (0.5*totT*(1.0e6) && t <= (totT*(1.0e6)))) { // convert totT to microseconds
-      t = micros() - startT;
-      Serial.print("time: ");
-      Serial.print(t);
-      
-      xb = xa + vmax*((float)(t - ta) / (1.0e6)) - 0.5*a*pow((float)(t - ta) / (1.0e6), 2); // convert t to seconds
-      delT = (float)(t - ti) / (1.0e6); // convert t to seconds
-      ti = t;
-
-      newPos = myEnc.read();
-      er = abs(xb - newPos);
-      ederiv = (er - eri) / delT;
-      einteg += er*delT;
-
-      u = kp*er + ki*einteg + kd*ederiv;
-      speed = constrain(u, 0, 100);
-      analogWrite(ENA, speed);
-
-      newPos = myEnc.read();
-      delay(10);
-      Serial.print(" position: ");
-      Serial.print(newPos);
-      Serial.print(" kp*e: ");
-      Serial.print(kp*er);
-      Serial.print(" ki*e: ");
-      Serial.print(ki*einteg);
-      Serial.print(" kd*e: ");
-      Serial.print(kd*ederiv);
-      Serial.print(" speed: ");
-      Serial.println(speed);
-
+    while (t >= ta && t < totT) {
+      xb = xa + vmax*(((float)t / (1.0e6))- ta) - 0.5*a*(((float)t / (1.0e6)) - ta)*(((float)t / (1.0e6))- ta); // convert t to seconds
+      PIDcalc(xb);
       t = micros() - startT;
     }
   }
 
   else {
+    ta = (float)vmax / a;
     t = micros() - startT;
-    while (u <= vmax) {
-      Serial.print(" positive acceleration start ");
-      t = micros() - startT;
-      Serial.print("time: ");
-      Serial.print(t);
+    Serial.print("time: ");
+    Serial.println(t);
 
+    while (t < ta) {
       xa = 0.5*a*pow((float)t / 1.0e6, 2);
-      delT = (float)(t - ti) / (1.0e6); // convert t to seconds
-      ti = t;
-
-      newPos = myEnc.read();
-      er = (int)(xa - newPos);
-      ederiv = (er - eri) / delT;
-      einteg += er*delT;
-
-      u = kp*er + ki*einteg + kd*ederiv;
-      speed = constrain(u, 0, 100);
-      analogWrite(ENA, speed);
-
-      newPos = myEnc.read();
-      delay(10);
-      Serial.print(" position: ");
-      Serial.print(newPos);
-      Serial.print(" kp*e: ");
-      Serial.print(kp*er);
-      Serial.print(" ki*e: ");
-      Serial.print(ki*einteg);
-      Serial.print(" kd*e: ");
-      Serial.print(kd*ederiv);
-      Serial.print(" speed: ");
-      Serial.println(speed);
-
-      ta = t;
+      PIDcalc(xa);
+      t = micros() - startT;
     }
 
-    while (t >= ta && t < (totT*(1.0e6)) - ta ) {
-      Serial.print(" constant acceleration start ");
-      t = micros() - startT;
-      Serial.print("time: ");
-      Serial.print(t);
-
-      xb = xa + vmax*((float)(t - ta) / (1.0e6));
-      delT = (float)(t - ti) / (1.0e6); // convert t to seconds
-      ti = t;
-
-      newPos = myEnc.read();
-      er = abs(xb - newPos);
-      ederiv = (er - eri) / delT;
-      einteg += er*delT;
-
-      u = kp*er + ki*einteg + kd*ederiv;
-      speed = constrain(u, 0, 100);
-      analogWrite(ENA, speed);
-
-      newPos = myEnc.read();
-      delay(10);
-      Serial.print(" position: ");
-      Serial.print(newPos);
-      Serial.print(" kp*e: ");
-      Serial.print(kp*er);
-      Serial.print(" ki*e: ");
-      Serial.print(ki*einteg);
-      Serial.print(" kd*e: ");
-      Serial.print(kd*ederiv);
-      Serial.print(" speed: ");
-      Serial.println(speed);
-
-      t = micros() - startT;
-
+    while (t >= ta && t < totT - ta) {
+      xb = xa + vmax*(((float)t  / (1.0e6)) - ta);
+      PIDcalc(xb);
     }
 
-    while (t >= (totT*(1.0e6)) - ta && t <= totT*(1.0e6)) {
-      Serial.print(" negative acceleration start ");
-      t = micros() - startT;
-      Serial.print("time: ");
-      Serial.print(t);
-
-      xc = xa + vmax*((totT*(1.0e6)) - (2*((float)ta / (1.0e6)))) - 0.5*a*pow((float)(t - (totT*(1.0e6) - ta)) / (1.0e6), 2);
-      delT = (float)(t - ti) / (1.0e6); // convert t to seconds
-      ti = t;
-
-      newPos = myEnc.read();
-      er = (int)(xc - newPos);
-      ederiv = (er - eri) / delT;
-      einteg += er*delT;
-
-      u = kp*er + ki*einteg + kd*ederiv;
-      speed = constrain(u, 0, 100);
-      analogWrite(ENA, speed);
-
-      if (u > 0) {
-      digitalWrite(IN1, HIGH);
-      digitalWrite(IN2, LOW);
-      } 
-      else {
-      digitalWrite(IN1, LOW);
-      digitalWrite(IN2, HIGH);
-      }
-
-      newPos = myEnc.read();
-      delay(10);
-      Serial.print(" position: ");
-      Serial.print(newPos);
-      Serial.print(" kp*e: ");
-      Serial.print(kp*er);
-      Serial.print(" ki*e: ");
-      Serial.print(ki*einteg);
-      Serial.print(" kd*e: ");
-      Serial.print(kd*ederiv);
-      Serial.print(" speed: ");
-      Serial.println(speed);
-
-      t = micros() - startT;
-
+    while (t >= totT - ta && t <= totT) {
+      xc = xa + vmax*((totT*(1.0e6)) - (2*((float)ta / (1.0e6)))) - 0.5*a*(((float)t / (1.0e6)) - (totT - ta))*(((float)t / (1.0e6)) - (totT - ta));
+      PIDcalc(xc);
     }
+
   }
+
+}
+
+void PIDcalc(int x) {
+  
+  newPos = myEnc.read();
+  er = (int)(x - newPos);
+  ederiv = (er - eri) / delT;
+  einteg += er * delT;
+
+  u = kp*er + ki*einteg + kd*ederiv;
+  speed = constrain(u, 0, vmax);
+  analogWrite(ENA, speed);
+
+  newPos = myEnc.read();
+  delay(10);
+  Serial.print(" position: ");
+  Serial.print(newPos);
+  Serial.print(" kp*e: ");
+  Serial.print(kp*er);
+  Serial.print(" ki*e: ");
+  Serial.print(ki*einteg);
+  Serial.print(" kd*e: ");
+  Serial.print(kd*ederiv);
+  Serial.print(" speed: ");
+  Serial.println(speed);
+
 }
