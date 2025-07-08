@@ -4,7 +4,7 @@
 const int ENA = 12, IN1 = 6, IN2 = 7, ENCA = 2, ENCB = 3; // the Arduino pin connected to the EN1 pin L298N
 volatile int newPos = 0;
 long ti = 0, userInput, t, distance, startT, totT;
-int speed, oldPos, er, eri, u = 0, a = 10, vmax = 100, xa, xb, xc, x;
+int speed, oldPos, er, eri, u = 0, a = 0.01, vmax = 100, xa, xb, xc, x;
 float tolm, tolp, delT = 10/(1.0e6), ederiv, einteg, ta, tb;
 
 Encoder myEnc(ENCA, ENCB);
@@ -37,27 +37,34 @@ void loop () {
     newPos = myEnc.read();
     Serial.println(newPos);
 
-    distance = oldPos - userInput;
+    distance = newPos - userInput;
     tolm = userInput - abs(distance) * 0.05;
     tolp = userInput + abs(distance) * 0.05;
-    totT = (distance*a + vmax*vmax) / (a*vmax);
+    totT = (abs(distance)*a + vmax*vmax) / (a*vmax);
 
-    while (newPos <= tolm|| newPos >= tolp) {
-      startT = micros();
-      motorMove(distance);
-      vProf(distance);
+    if (abs(distance) < a * ta * ta) {
+      ta = sqrt(abs(distance) / a);
+      totT = 2 * ta;
     }
 
-  digitalWrite(IN1, HIGH); // control motor A stops
-  digitalWrite(IN2, HIGH);  // control motor A stops
+    else {
+      ta = (float)vmax / a;
+      tb = totT - 2*ta;
+    }
+    
+    startT = micros();
+    motorMove(distance);
 
+    digitalWrite(IN1, HIGH); // control motor A stops
+    digitalWrite(IN2, HIGH);  // control motor A stops
 
   }
 
 }
 
 void motorMove(long distance) {
-  if (distance > 0) {
+
+    if (distance > 0) {
     digitalWrite(IN1, HIGH); // control motor A spins clockwise
     digitalWrite(IN2, LOW);  // control motor A spins clockwise
   }
@@ -76,47 +83,38 @@ void motorMove(long distance) {
 
 void vProf(long distance) {
   
-  if (distance <= (0.5*totT*vmax)) {
-    ta = 0.5*totT*vmax;
+  t = micros() - startT;
+  Serial.print("time: ");
+  Serial.println(t);
+
+  if (t < ta) {
+    x = 0.5*a*t*t;
+    PIDcalc(x);
     t = micros() - startT;
-    Serial.print("time: ");
-    Serial.println(t);
-
-    while (t < ta) {
-      xa = 0.5*a*pow((float)t / 1.0e6, 2); // convert t to seconds
-      PIDcalc(xa);
-      t = micros() - startT;
-    }
-
-    while (t >= ta && t < totT) {
-      xb = xa + vmax*(((float)t / (1.0e6))- ta) - 0.5*a*(((float)t / (1.0e6)) - ta)*(((float)t / (1.0e6))- ta); // convert t to seconds
-      PIDcalc(xb);
-      t = micros() - startT;
-    }
   }
 
-  else {
-    ta = (float)vmax / a;
+  else if (t >= ta && t < totT) {
+    xb = xa + vmax*(t - ta) - 0.5*a*(t - ta)*(t - ta);
+    PIDcalc(xb);
     t = micros() - startT;
-    Serial.print("time: ");
-    Serial.println(t);
+  }
 
-    while (t < ta) {
-      xa = 0.5*a*pow((float)t / 1.0e6, 2);
-      PIDcalc(xa);
-      t = micros() - startT;
-    }
+  if (t < ta) {
+    xa = 0.5*a*t*t;
+    PIDcalc(xa);
+    t = micros() - startT;
+  }
 
-    while (t >= ta && t < totT - ta) {
-      xb = xa + vmax*(((float)t  / (1.0e6)) - ta);
-      PIDcalc(xb);
-    }
+  else if (t >= ta && t < ta + tb) {
+    xb = 0.5*a*ta*ta + vmax*(t - ta);
+    PIDcalc(xb);
+    t = micros() - startT;
+  }
 
-    while (t >= totT - ta && t <= totT) {
-      xc = xa + vmax*((totT*(1.0e6)) - (2*((float)ta / (1.0e6)))) - 0.5*a*(((float)t / (1.0e6)) - (totT - ta))*(((float)t / (1.0e6)) - (totT - ta));
-      PIDcalc(xc);
-    }
-
+  else if (t >= ta + tb && t <= totT) {
+    xc = 0.5*a*ta*ta + vmax*tb + vmax*(t - ta - tb) - 0.5 * a * (t - ta - tb) * (t - ta - tb);
+    PIDcalc(xc);
+    t = micros() - startT;
   }
 
 }
@@ -133,7 +131,6 @@ void PIDcalc(int x) {
   analogWrite(ENA, speed);
 
   newPos = myEnc.read();
-  delay(10);
   Serial.print(" position: ");
   Serial.print(newPos);
   Serial.print(" kp*e: ");
