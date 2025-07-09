@@ -81,9 +81,21 @@ void loop () {
 
 void motorMove(long distance) {
 
-  bool direction = (distance > 0);
-  digitalWrite(IN1, direction ? HIGH:LOW);
-  digitalWrite(IN2, direction ? LOW:HIGH);
+
+  if (distance > 0) {
+    digitalWrite(IN1, HIGH); // control motor A spins clockwise
+    digitalWrite(IN2, LOW);  // control motor A spins clockwise
+    }
+
+  else if (distance < 0) {  
+    digitalWrite(IN1, LOW); // control motor A spins counterclockwise
+    digitalWrite(IN2, HIGH);  // control motor A spins counterclockwise
+  }
+
+  else {
+    digitalWrite(IN1, LOW); // control motor A stops
+    digitalWrite(IN2, LOW);  // control motor A stops
+  }
 
   t = (float)(micros() - startT)/(1.0e6);
 
@@ -104,8 +116,7 @@ void motorMove(long distance) {
       x = 0.5*a*ta*ta + vmax*tb + vmax*(t - ta - tb) - 0.5 * a * (t - ta - tb) * (t - ta - tb);
     }
 
-    if (!direction) x = -x;
-    int setpoint = myEnc.read() + x;
+    int setpoint = oldPos + x;
     PIDcalc(setpoint);
     delay(10);
 
