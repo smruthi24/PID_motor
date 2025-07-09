@@ -10,9 +10,9 @@ float tolm, tolp, delT = 10/(1.0e6), ederiv, einteg, ta, tb, t, startT, totT, di
 Encoder myEnc(ENCA, ENCB);
 
 //PID constants
-float kp = 0.2; // d Tr, i O, d Ts, d SSE lower
-float ki = 0.01; // d Tr, i O, i Ts, elim SSE higher
-float kd = 0.002; // sd Tr, d O, d Ts, N/A SSE lower
+float kp = 0.3; // d Tr, i O, d Ts, d SSE lower
+float ki = 0.07; // d Tr, i O, i Ts, elim SSE higher
+float kd = 0.08; // sd Tr, d O, d Ts, N/A SSE lower
 
 void setup() {
   // initialize digital pins as outputs.
@@ -56,7 +56,7 @@ void loop () {
       Serial.print(totT);
       Serial.print(" current position: ");
       Serial.print(oldPos);
-      Serial.print(" distance: ");
+      Serial.print(" distance: ");      
       Serial.println(distance);
     }
 
@@ -77,6 +77,7 @@ void loop () {
     
     startT = micros();
     motorMove(distance);
+    vProf(distance);
 
     digitalWrite(IN1, HIGH); // control motor A stops
     digitalWrite(IN2, HIGH);  // control motor A stops
@@ -100,8 +101,7 @@ void loop () {
 
 }
 
-void motorMove(long distance) {
-
+void motorMove(float distance) {
 
   if (distance > 0) {
     digitalWrite(IN1, HIGH); // control motor A spins clockwise
@@ -117,6 +117,10 @@ void motorMove(long distance) {
     digitalWrite(IN1, LOW); // control motor A stops
     digitalWrite(IN2, LOW);  // control motor A stops
   }
+
+}
+
+void vProf(float distance) {
 
   t = (float)(micros() - startT)/(1.0e6);
 
@@ -153,10 +157,19 @@ void PIDcalc(int setpoint) {
   einteg += er * delT;
 
   u = kp*er + ki*einteg + kd*ederiv;
-  
+  speed = constrain(u, -100, 100);
   analogWrite(ENA, speed);
 
   newPos = myEnc.read();
-  Serial.println(newPos);
+  Serial.print(newPos);
+  Serial.print("    kp*e: ");
+  Serial.print(kp*er);
+  Serial.print("    ki*e: ");
+  Serial.print(ki*einteg);
+  Serial.print("    kd*e: ");
+  Serial.print(kd*ederiv);
+  Serial.print("    speed: ");
+  Serial.println(speed);
 
+  eri = er;
 }
