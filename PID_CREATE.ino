@@ -4,7 +4,7 @@
 const int ENA = 12, IN1 = 6, IN2 = 7, ENCA = 2, ENCB = 3; // the Arduino pin connected to the EN1 pin L298N
 volatile int newPos = 0;
 long ti = 0, userInput, t, distance, startT, totT;
-int speed, oldPos, er, eri, u = 0, a = 1000, vmax = 100, xa, xb, xc, x;
+int speed, oldPos, er, eri, u = 0, a = 1000, vmax = 100, x;
 float tolm, tolp, delT = 10/(1.0e6), ederiv, einteg, ta, tb;
 
 Encoder myEnc(ENCA, ENCB);
@@ -125,16 +125,6 @@ void PIDcalc(int setpoint) {
   analogWrite(ENA, speed);
 
   newPos = myEnc.read();
-  /*Serial.print(" position: ");
-  Serial.print(newPos);
-  Serial.print(" kp*e: ");
-  Serial.print(kp*er);
-  Serial.print(" ki*e: ");
-  Serial.print(ki*einteg);
-  Serial.print(" kd*e: ");
-  Serial.print(kd*ederiv);
-  Serial.print(" speed: ");
-  Serial.println(speed);*/
+  Serial.println(newPos);
 
 }
-
