@@ -4,15 +4,15 @@
 const int ENA = 12, IN1 = 6, IN2 = 7, ENCA = 2, ENCB = 3; // the Arduino pin connected to the EN1 pin L298N
 volatile int newPos = 0;
 long userInput;
-float speed, oldPos, er, eri, u = 0, a = 10000, vmax = 500, x;
+float speed, oldPos, er, eri, u = 0, a = 5000, vmax = 1000, x;
 float tolm, tolp, delT = 10, ederiv, einteg, ta, tb, t, startT, totT, distance;
 
 Encoder myEnc(ENCA, ENCB);
 
 //PID constants
-float kp = 0.5; // d Tr, i O, d Ts, d SSE lower
-float ki = 0.0; // d Tr, i O, i Ts, elim SSE higher
-float kd = 0.0; // sd Tr, d O, d Ts, N/A SSE lower
+float kp = 0.6; // d Tr, i O, d Ts, d SSE lower
+float ki = 0.003; // d Tr, i O, i Ts, elim SSE higher
+float kd = 0.002; // sd Tr, d O, d Ts, N/A SSE lower
 
 void setup() {
   // initialize digital pins as outputs.
@@ -22,7 +22,7 @@ void setup() {
   pinMode(IN1,OUTPUT);
   pinMode(IN2,OUTPUT);
 
-  Serial.begin(9600);
+  Serial.begin(250000);
   Serial.println("enter number of counts");
   
   while(!Serial);  
@@ -76,7 +76,9 @@ void loop () {
     }
     
     startT = micros();
+    motorMove(distance);
     vProf(distance);
+    
 
     digitalWrite(IN1, HIGH); // control motor A stops
     digitalWrite(IN2, HIGH);  // control motor A stops
@@ -100,24 +102,21 @@ void loop () {
 
 }
 
-void motorMove(float speed) {
+void motorMove(float distance) {
 
-  if (speed > 0) {
+  if (distance > 0) {
     digitalWrite(IN1, HIGH); // control motor A spins clockwise
     digitalWrite(IN2, LOW);  // control motor A spins clockwise
-    analogWrite(ENA, abs(speed));
   }
 
-  else if (speed < 0) {  
+  else if (distance < 0) {  
     digitalWrite(IN1, LOW); // control motor A spins counterclockwise
     digitalWrite(IN2, HIGH);  // control motor A spins counterclockwise
-    analogWrite(ENA, abs(speed));
   }
 
   else {
     digitalWrite(IN1, LOW); // control motor A stops
     digitalWrite(IN2, LOW);  // control motor A stops
-    analogWrite(ENA, abs(speed));
   }
 
 }
@@ -155,21 +154,24 @@ void PIDcalc(int setpoint) {
   newPos = myEnc.read();
   er = (int)(setpoint - newPos);
   ederiv = ((er - eri) / delT) * (1.0e3);
-  einteg = (einteg + er * delT) / (1.0e3);
+  einteg = einteg + er * (delT / (1.0e3));
 
   u = kp*er + ki*einteg + kd*ederiv;
   speed = constrain(u, -100, 100);
-  motorMove(speed);
+  analogWrite(ENA, abs(speed));
 
   newPos = myEnc.read();
+  Serial.print(" position: ");
   Serial.print(newPos);
-  Serial.print("    kp*e: ");
+  Serial.print(" setpoint: ");
+  Serial.print(setpoint);
+  Serial.print(" kp*e: ");
   Serial.print(kp*er);
-  Serial.print("    ki*e: ");
+  Serial.print(" ki*e: ");
   Serial.print(ki*einteg);
-  Serial.print("    kd*e: ");
+  Serial.print(" kd*e: ");
   Serial.print(kd*ederiv);
-  Serial.print("    speed: ");
+  Serial.print(" speed: ");
   Serial.println(speed);
 
   eri = er;
