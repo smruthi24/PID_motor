@@ -5,7 +5,7 @@ const int ENA = 12, IN1 = 6, IN2 = 7, ENCA = 2, ENCB = 3; // the Arduino pin con
 volatile int newPos = 0;
 long userInput;
 float speed, oldPos, er, eri, u = 0, a = 10000, vmax = 5000, x;
-float tolm, tolp, delT = 10/(1.0e6), ederiv, einteg, ta, tb, t, startT, totT, distance;
+float tolm, tolp, delT = 10, ederiv, einteg, ta, tb, t, startT, totT, distance;
 
 Encoder myEnc(ENCA, ENCB);
 
@@ -76,7 +76,6 @@ void loop () {
     }
     
     startT = micros();
-    motorMove(distance);
     vProf(distance);
 
     digitalWrite(IN1, HIGH); // control motor A stops
@@ -101,21 +100,24 @@ void loop () {
 
 }
 
-void motorMove(float distance) {
+void motorMove(float speed) {
 
-  if (distance > 0) {
+  if (speed > 0) {
     digitalWrite(IN1, HIGH); // control motor A spins clockwise
     digitalWrite(IN2, LOW);  // control motor A spins clockwise
-    }
+    analogWrite(ENA, abs(speed));
+  }
 
-  else if (distance < 0) {  
+  else if (speed < 0) {  
     digitalWrite(IN1, LOW); // control motor A spins counterclockwise
     digitalWrite(IN2, HIGH);  // control motor A spins counterclockwise
+    analogWrite(ENA, abs(speed));
   }
 
   else {
     digitalWrite(IN1, LOW); // control motor A stops
     digitalWrite(IN2, LOW);  // control motor A stops
+    analogWrite(ENA, abs(speed));
   }
 
 }
@@ -158,7 +160,7 @@ void PIDcalc(int setpoint) {
 
   u = kp*er + ki*einteg + kd*ederiv;
   speed = constrain(u, -100, 100);
-  analogWrite(ENA, speed);
+  motorMove(speed);
 
   newPos = myEnc.read();
   Serial.print(newPos);
