@@ -3,9 +3,9 @@
 // constants won't change
 const int ENA = 12, IN1 = 6, IN2 = 7, ENCA = 2, ENCB = 3; // the Arduino pin connected to the EN1 pin L298N
 volatile int newPos = 0;
-long ti = 0, userInput, t, distance, startT, totT;
-int speed, oldPos, er, eri, u = 0, a = 1000, vmax = 100, x;
-float tolm, tolp, delT = 10/(1.0e6), ederiv, einteg, ta, tb;
+long userInput;
+int speed, oldPos, er, eri, u = 0, a = 10000, vmax = 5000, x;
+float tolm, tolp, delT = 10/(1.0e6), ederiv, einteg, ta, tb, t, startT, totT, distance;
 
 Encoder myEnc(ENCA, ENCB);
 
@@ -38,7 +38,8 @@ void loop () {
     Serial.print(" current position: ");
     Serial.println(oldPos);
 
-    distance = oldPos - userInput;
+    distance = (float)(userInput - oldPos);
+    Serial.println(distance);
     tolm = userInput - abs(distance) * 0.05;
     tolp = userInput + abs(distance) * 0.05;
     ta = (float)vmax / a;
@@ -47,11 +48,31 @@ void loop () {
       ta = sqrt(abs(distance) / a);
       totT = 2 * ta;
       tb = 0;
+      Serial.print(" ta: ");
+      Serial.print(ta);
+      Serial.print(" tb: ");
+      Serial.print(tb);
+      Serial.print(" totT: ");
+      Serial.print(totT);
+      Serial.print(" current position: ");
+      Serial.print(oldPos);
+      Serial.print(" distance: ");
+      Serial.println(distance);
     }
 
     else {
       totT = (abs(distance)*a + vmax*vmax) / (a*vmax);
       tb = totT - 2*ta;
+      Serial.print(" ta: ");
+      Serial.print(ta);
+      Serial.print(" tb: ");
+      Serial.print(tb);
+      Serial.print(" totT: ");
+      Serial.print(totT);
+      Serial.print(" current position: ");
+      Serial.print(oldPos);
+      Serial.print(" distance: ");
+      Serial.println(distance);
     }
     
     startT = micros();
