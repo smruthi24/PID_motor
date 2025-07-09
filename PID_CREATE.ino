@@ -4,14 +4,14 @@
 const int ENA = 12, IN1 = 6, IN2 = 7, ENCA = 2, ENCB = 3; // the Arduino pin connected to the EN1 pin L298N
 volatile int newPos = 0;
 long userInput;
-int speed, oldPos, er, eri, u = 0, a = 10000, vmax = 5000, x;
+float speed, oldPos, er, eri, u = 0, a = 10000, vmax = 5000, x;
 float tolm, tolp, delT = 10/(1.0e6), ederiv, einteg, ta, tb, t, startT, totT, distance;
 
 Encoder myEnc(ENCA, ENCB);
 
 //PID constants
-float kp = 0.6; // d Tr, i O, d Ts, d SSE lower
-float ki = 0.03; // d Tr, i O, i Ts, elim SSE higher
+float kp = 0.2; // d Tr, i O, d Ts, d SSE lower
+float ki = 0.01; // d Tr, i O, i Ts, elim SSE higher
 float kd = 0.002; // sd Tr, d O, d Ts, N/A SSE lower
 
 void setup() {
@@ -123,7 +123,7 @@ void motorMove(long distance) {
   while (t < totT) {
     t = (float)(micros() - startT)/(1.0e6);
     Serial.print("time: ");
-    Serial.println(t);
+    Serial.print(t);
 
     if (t < ta) {
       x = 0.5*a*t*t;
@@ -153,7 +153,7 @@ void PIDcalc(int setpoint) {
   einteg += er * delT;
 
   u = kp*er + ki*einteg + kd*ederiv;
-  speed = constrain(u, 0, 255);
+  
   analogWrite(ENA, speed);
 
   newPos = myEnc.read();
