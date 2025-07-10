@@ -1,18 +1,17 @@
 #include "Encoder.h"
-// set delT to 10 set totT equation make function for x position and for PID constants
 // constants won't change
 const int ENA = 12, IN1 = 6, IN2 = 7, ENCA = 2, ENCB = 3; // the Arduino pin connected to the EN1 pin L298N
 volatile int newPos = 0;
 long userInput;
-float speed, oldPos, er, eri, u = 0, a = 5000, vmax = 1000, x;
+float speed, oldPos, er, eri, u = 0, a = 100, vmax = 1000, x;
 float tolm, tolp, delT = 10, ederiv, einteg, ta, tb, t, startT, totT, distance;
 
 Encoder myEnc(ENCA, ENCB);
 
 //PID constants
-float kp = 0.6; // d Tr, i O, d Ts, d SSE lower
-float ki = 0.003; // d Tr, i O, i Ts, elim SSE higher
-float kd = 0.002; // sd Tr, d O, d Ts, N/A SSE lower
+float kp = 0.5; // d Tr, i O, d Ts, d SSE lower
+float ki = 0.04; // d Tr, i O, i Ts, elim SSE higher
+float kd = 0.05; // sd Tr, d O, d Ts, N/A SSE lower
 
 void setup() {
   // initialize digital pins as outputs.
@@ -22,9 +21,9 @@ void setup() {
   pinMode(IN1,OUTPUT);
   pinMode(IN2,OUTPUT);
 
-  Serial.begin(250000);
+  Serial.begin(9600);
   Serial.println("enter number of counts");
-  
+
   while(!Serial);  
 }
 
@@ -40,44 +39,17 @@ void loop () {
 
     distance = (float)(userInput - oldPos);
     Serial.println(distance);
-    tolm = userInput - abs(distance) * 0.05;
-    tolp = userInput + abs(distance) * 0.05;
+    tolm = userInput - abs(distance) * 0.2;
+    tolp = userInput + abs(distance) * 0.2;
     ta = (float)vmax / a;
 
-    if (abs(distance) < a * ta * ta) {
-      ta = sqrt(abs(distance) / a);
-      totT = 2 * ta;
-      tb = 0;
-      Serial.print(" ta: ");
-      Serial.print(ta);
-      Serial.print(" tb: ");
-      Serial.print(tb);
-      Serial.print(" totT: ");
-      Serial.print(totT);
-      Serial.print(" current position: ");
-      Serial.print(oldPos);
-      Serial.print(" distance: ");      
-      Serial.println(distance);
-    }
-
-    else {
-      totT = (abs(distance)*a + vmax*vmax) / (a*vmax);
-      tb = totT - 2*ta;
-      Serial.print(" ta: ");
-      Serial.print(ta);
-      Serial.print(" tb: ");
-      Serial.print(tb);
-      Serial.print(" totT: ");
-      Serial.print(totT);
-      Serial.print(" current position: ");
-      Serial.print(oldPos);
-      Serial.print(" distance: ");
-      Serial.println(distance);
-    }
-    
     startT = micros();
-    motorMove(distance);
-    vProf(distance);
+    
+    while (newPos <= tolm || newPos >= tolp) {
+      motorMove(distance);
+      vProf(distance);
+      oldPos = userInput;
+    }
     
 
     digitalWrite(IN1, HIGH); // control motor A stops
@@ -95,6 +67,7 @@ void loop () {
     Serial.print(" ");
     Serial.println(kd);
     delay(1000);
+    
     Serial.println("enter number of counts");
     userInput = Serial.parseInt();
 
@@ -107,64 +80,85 @@ void motorMove(float distance) {
   if (distance > 0) {
     digitalWrite(IN1, HIGH); // control motor A spins clockwise
     digitalWrite(IN2, LOW);  // control motor A spins clockwise
-  }
+    }
+
 
   else if (distance < 0) {  
     digitalWrite(IN1, LOW); // control motor A spins counterclockwise
     digitalWrite(IN2, HIGH);  // control motor A spins counterclockwise
+
   }
 
   else {
     digitalWrite(IN1, LOW); // control motor A stops
     digitalWrite(IN2, LOW);  // control motor A stops
+
   }
 
 }
 
 void vProf(float distance) {
 
+  ta = (float)vmax / a;
+  totT = (abs(distance)*a + vmax*vmax) / (a*vmax);
   t = (float)(micros() - startT)/(1.0e6);
 
   while (t < totT) {
+
+    if (abs(distance) < a * ta * ta) {
+      ta = sqrt(abs(distance) / a);
+      totT = 2 * ta;
+
+      if (t < ta) {
+        x = 0.5*a*t*t;
+      }
+
+      else {
+        x = 0.5*a*ta*ta + vmax*(t-ta) - 0.5*(t-ta)*(t-ta);
+      }
+    }
+
+    else {
+      tb = totT - 2*ta;
+
+      if (t < ta) {
+        x = 0.5*a*t*t;
+      }
+
+      else if (t >= ta && t < ta + tb) {
+        x = 0.5*a*ta*ta + vmax*(t - ta);
+      }
+
+      else {
+        x = 0.5*a*ta*ta + vmax*tb + vmax*(t - ta - tb) - 0.5*a*(t - ta - tb)*(t - ta - tb);
+      }
+    }
+
     t = (float)(micros() - startT)/(1.0e6);
     Serial.print("time: ");
     Serial.print(t);
 
-    if (t < ta) {
-      x = 0.5*a*t*t;
-    }
-
-    else if (/*t >= ta &&*/ t < ta + tb) {
-      x = 0.5*a*ta*ta + vmax*(t - ta);
-    }
-
-    else /*if (t >= ta + tb && t <= totT)*/ {
-      x = 0.5*a*ta*ta + vmax*tb + vmax*(t - ta - tb) - 0.5 * a * (t - ta - tb) * (t - ta - tb);
-    }
-
-    int setpoint = oldPos + x;
+    newPos = myEnc.read();
+    int setpoint = userInput > newPos ? newPos + x : newPos - x;
     delay(10);
     PIDcalc(setpoint);
   }
-
 }
 
 void PIDcalc(int setpoint) {
-  
+
   newPos = myEnc.read();
-  er = (int)(setpoint - newPos);
-  ederiv = ((er - eri) / delT) * (1.0e3);
-  einteg = einteg + er * (delT / (1.0e3));
+  er = abs(setpoint - newPos);
+  ederiv = (er - eri) / delT;
+  einteg = einteg + er * delT;
 
   u = kp*er + ki*einteg + kd*ederiv;
-  speed = constrain(u, -100, 100);
-  analogWrite(ENA, abs(speed));
+  speed = constrain(u, 0, 100);
+  analogWrite(ENA, speed);
 
   newPos = myEnc.read();
   Serial.print(" position: ");
   Serial.print(newPos);
-  Serial.print(" setpoint: ");
-  Serial.print(setpoint);
   Serial.print(" kp*e: ");
   Serial.print(kp*er);
   Serial.print(" ki*e: ");
@@ -175,4 +169,8 @@ void PIDcalc(int setpoint) {
   Serial.println(speed);
 
   eri = er;
+  er = 0;
+  ederiv = 0;
+  einteg = 0;
+
 }
