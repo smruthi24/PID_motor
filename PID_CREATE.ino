@@ -1,15 +1,16 @@
 #include "Encoder.h"
+#include "LibPrintf.h"
 // constants won't change
 const int ENA = 12, IN1 = 6, IN2 = 7, ENCA = 2, ENCB = 3; // the Arduino pin connected to the EN1 pin L298N
 volatile int newPos = 0;
 long userInput;
-float speed, oldPos, er, eri, u = 0, a = 100, vmax = 1000, x;
+float speed, oldPos, er, eri, u = 0, a = 10000, vmax = 1000, x;
 float tolm, tolp, delT = 10, ederiv, einteg, ta, tb, t, startT, totT, distance;
 
 Encoder myEnc(ENCA, ENCB);
 
 //PID constants
-float kp = 0.5; // d Tr, i O, d Ts, d SSE lower
+float kp = 1.0; // d Tr, i O, d Ts, d SSE lower
 float ki = 0.04; // d Tr, i O, i Ts, elim SSE higher
 float kd = 0.05; // sd Tr, d O, d Ts, N/A SSE lower
 
@@ -39,14 +40,12 @@ void loop () {
 
     distance = (float)(userInput - oldPos);
     Serial.println(distance);
-    tolm = userInput - abs(distance) * 0.2;
-    tolp = userInput + abs(distance) * 0.2;
-    ta = (float)vmax / a;
+    tolm = userInput - abs(distance) * 0.05;
+    tolp = userInput + abs(distance) * 0.05;
 
     startT = micros();
     
     while (newPos <= tolm || newPos >= tolp) {
-      motorMove(distance);
       vProf(distance);
       oldPos = userInput;
     }
@@ -75,15 +74,17 @@ void loop () {
 
 }
 
-void motorMove(float distance) {
+void motorMove(float x) {
 
-  if (distance > 0) {
+  newPos = (float) myEnc.read();
+
+  if (x - newPos > 0) {
     digitalWrite(IN1, HIGH); // control motor A spins clockwise
     digitalWrite(IN2, LOW);  // control motor A spins clockwise
     }
 
 
-  else if (distance < 0) {  
+  else if (x - newPos < 0) {  
     digitalWrite(IN1, LOW); // control motor A spins counterclockwise
     digitalWrite(IN2, HIGH);  // control motor A spins counterclockwise
 
@@ -101,6 +102,7 @@ void vProf(float distance) {
 
   ta = (float)vmax / a;
   totT = (abs(distance)*a + vmax*vmax) / (a*vmax);
+
   t = (float)(micros() - startT)/(1.0e6);
 
   while (t < totT) {
@@ -135,13 +137,14 @@ void vProf(float distance) {
     }
 
     t = (float)(micros() - startT)/(1.0e6);
-    Serial.print("time: ");
-    Serial.print(t);
+
+    //printf(" total time: %f ramp time: %f cruise time: %f \n", totT, ta, tb);
 
     newPos = myEnc.read();
-    int setpoint = userInput > newPos ? newPos + x : newPos - x;
+    //float setpoint = userInput > newPos ? newPos + x : newPos - x;
+    printf(" time: %f setpoint: %f ", t, x);
     delay(10);
-    PIDcalc(setpoint);
+    PIDcalc(x);
   }
 }
 
@@ -155,6 +158,7 @@ void PIDcalc(int setpoint) {
   u = kp*er + ki*einteg + kd*ederiv;
   speed = constrain(u, 0, 100);
   analogWrite(ENA, speed);
+  motorMove(x);
 
   newPos = myEnc.read();
   Serial.print(" position: ");
