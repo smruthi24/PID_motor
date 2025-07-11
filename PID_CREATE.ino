@@ -22,7 +22,7 @@ void setup() {
   pinMode(IN1,OUTPUT);
   pinMode(IN2,OUTPUT);
 
-  Serial.begin(9600);
+  Serial.begin(230400);
   Serial.println("enter number of counts");
 
   while(!Serial);  
@@ -39,7 +39,6 @@ void loop () {
     Serial.println(oldPos);
 
     distance = (float)(userInput - oldPos);
-    Serial.println(distance);
     tolm = userInput - abs(distance) * 0.05;
     tolp = userInput + abs(distance) * 0.05;
 
@@ -59,6 +58,7 @@ void loop () {
     Serial.print(userInput);
     Serial.print(" actual count: ");
     newPos = myEnc.read();
+    delay(10);
     Serial.println(newPos);
     Serial.print(kp);
     Serial.print(" ");
@@ -74,17 +74,17 @@ void loop () {
 
 }
 
-void motorMove(float x) {
+void motorMove(float setpoint) {
 
   newPos = (float) myEnc.read();
 
-  if (x - newPos > 0) {
+  if (setpoint - newPos > 0) {
     digitalWrite(IN1, HIGH); // control motor A spins clockwise
     digitalWrite(IN2, LOW);  // control motor A spins clockwise
     }
 
 
-  else if (x - newPos < 0) {  
+  else if (setpoint - newPos < 0) {  
     digitalWrite(IN1, LOW); // control motor A spins counterclockwise
     digitalWrite(IN2, HIGH);  // control motor A spins counterclockwise
 
@@ -112,11 +112,11 @@ void vProf(float distance) {
       totT = 2 * ta;
 
       if (t < ta) {
-        x = 0.5*a*t*t;
+        x = (0.5*a*t*t);
       }
 
       else {
-        x = 0.5*a*ta*ta + vmax*(t-ta) - 0.5*(t-ta)*(t-ta);
+        x = (0.5*a*ta*ta + vmax*(t-ta) - 0.5*(t-ta)*(t-ta));
       }
     }
 
@@ -124,15 +124,15 @@ void vProf(float distance) {
       tb = totT - 2*ta;
 
       if (t < ta) {
-        x = 0.5*a*t*t;
+        x = (0.5*a*t*t);
       }
 
       else if (t >= ta && t < ta + tb) {
-        x = 0.5*a*ta*ta + vmax*(t - ta);
+        x = (0.5*a*ta*ta + vmax*(t - ta));
       }
 
       else {
-        x = 0.5*a*ta*ta + vmax*tb + vmax*(t - ta - tb) - 0.5*a*(t - ta - tb)*(t - ta - tb);
+        x = (0.5*a*ta*ta + vmax*tb + vmax*(t - ta - tb) - 0.5*a*(t - ta - tb)*(t - ta - tb));
       }
     }
 
@@ -141,14 +141,14 @@ void vProf(float distance) {
     //printf(" total time: %f ramp time: %f cruise time: %f \n", totT, ta, tb);
 
     newPos = myEnc.read();
-    //float setpoint = userInput > newPos ? newPos + x : newPos - x;
-    printf(" time: %f setpoint: %f ", t, x);
+    float setpoint = userInput > oldPos ? oldPos + x : oldPos - x;
+    printf(" time: %f setpoint: %f ", t, setpoint);
     delay(10);
-    PIDcalc(x);
+    PIDcalc(setpoint);
   }
 }
 
-void PIDcalc(int setpoint) {
+void PIDcalc(float setpoint) {
 
   newPos = myEnc.read();
   er = abs(setpoint - newPos);
@@ -158,7 +158,7 @@ void PIDcalc(int setpoint) {
   u = kp*er + ki*einteg + kd*ederiv;
   speed = constrain(u, 0, 100);
   analogWrite(ENA, speed);
-  motorMove(x);
+  motorMove(setpoint);
 
   newPos = myEnc.read();
   Serial.print(" position: ");
