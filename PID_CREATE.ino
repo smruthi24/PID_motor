@@ -78,13 +78,13 @@ void motorMove(float setpoint) {
 
   newPos = (float) myEnc.read();
 
-  if (setpoint - newPos > 0) {
+  if (setpoint - newPos > tolm) {
     digitalWrite(IN1, HIGH); // control motor A spins clockwise
     digitalWrite(IN2, LOW);  // control motor A spins clockwise
     }
 
 
-  else if (setpoint - newPos < 0) {  
+  else if (setpoint - newPos < tolp) {  
     digitalWrite(IN1, LOW); // control motor A spins counterclockwise
     digitalWrite(IN2, HIGH);  // control motor A spins counterclockwise
 
@@ -156,7 +156,7 @@ void PIDcalc(float setpoint) {
   einteg = einteg + er * delT;
 
   u = kp*er + ki*einteg + kd*ederiv;
-  speed = constrain(u, 0, 100);
+  speed = constrain(u, 0, 255);
   analogWrite(ENA, speed);
   motorMove(setpoint);
 
