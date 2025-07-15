@@ -2,7 +2,7 @@
 #include "LibPrintf.h"
 
 // constants won't change
-const int ENA = 12, IN1 = 6, IN2 = 7, ENCA = 2, ENCB = 3; // the Arduino pin connected to the EN1 pin L298N
+const int ENA = 12, IN1 = 6, IN2 = 7, ENCA = 2, ENCB = 3, INP = 9; // the Arduino pin connected to the EN1 pin L298N
 volatile int newPos = 0;
 long userInput;
 float speed, oldPos, er, eri, u = 0, a = 4000, vmax = 6000, x, setpoint, speedprev;
@@ -22,6 +22,7 @@ void setup() {
   pinMode(ENA,OUTPUT);
   pinMode(IN1,OUTPUT);
   pinMode(IN2,OUTPUT);
+  pinMode(INP, INPUT_PULLUP);
 
   Serial.begin(230400);
   Serial.println("enter number of counts");
@@ -84,8 +85,7 @@ void motorMove(float setpoint) {
   if (setpoint - newPos > 15) {
     digitalWrite(IN1, HIGH); // control motor A spins clockwise
     digitalWrite(IN2, LOW);  // control motor A spins clockwise
-    }
-
+  }
 
   else if (setpoint - newPos < 15) {  
     digitalWrite(IN1, LOW); // control motor A spins counterclockwise
@@ -125,7 +125,14 @@ void vProf(float distance) {
     t = (float)(micros() - startT)/(1.0e6);
 
     //printf(" total time: %f ramp time: %f cruise time: %f \n", totT, ta, tb);
+    int pullup = digitalRead(INP);
 
+    if (pullup == LOW) {
+      digitalWrite(IN1, LOW);
+      digitalWrite(IN2, LOW);
+      break;
+    }
+    
     newPos = myEnc.read();
     setpoint = userInput > oldPos ? oldPos + x : oldPos - x;
     printf(" time: %f setpoint: %f ", t, setpoint);
