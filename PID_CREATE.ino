@@ -41,8 +41,8 @@ void loop () {
 
     distance = (float)(userInput - oldPos);
 
-    tolm = userInput - abs(distance) * 0.05;
-    tolp = userInput + abs(distance) * 0.05;
+    tolm = userInput - 10;
+    tolp = userInput + 10;
 
     startT = micros();
 
@@ -55,16 +55,6 @@ void loop () {
 
     digitalWrite(IN1, HIGH); // control motor A stops
     digitalWrite(IN2, HIGH);  // control motor A stops
-
-    Serial.println("start spool down");
-    
-    while (newPos != myEnc.read()) {
-
-      Serial.print(" position: ");
-      newPos = myEnc.read();
-      Serial.println(newPos);
-
-    }
 
     delay(1000);
     Serial.println("motor stopped");
@@ -91,13 +81,13 @@ void motorMove(float setpoint) {
 
   newPos = (float) myEnc.read();
 
-  if (setpoint - newPos > 0) {
+  if (setpoint - newPos > 10) {
     digitalWrite(IN1, HIGH); // control motor A spins clockwise
     digitalWrite(IN2, LOW);  // control motor A spins clockwise
     }
 
 
-  else if (setpoint - newPos < 0) {  
+  else if (setpoint - newPos < 10) {  
     digitalWrite(IN1, LOW); // control motor A spins counterclockwise
     digitalWrite(IN2, HIGH);  // control motor A spins counterclockwise
 
@@ -118,7 +108,7 @@ void vProf(float distance) {
   tb = totT - 2*ta;
   t = (float)(micros() - startT)/(1.0e6);
 
-  while (newPos <= tolm || newPos >= tolp) { 
+  while ((newPos <= tolm || newPos >= tolp) && t < 10) { 
 
     if (t < ta) {
       x = (0.5*a*t*t);
@@ -142,6 +132,10 @@ void vProf(float distance) {
     delay(10);
     PIDcalc(setpoint);
   }
+  
+  digitalWrite(IN1, LOW); // control motor A stops
+  digitalWrite(IN2, LOW);  // control motor A stops
+
 }
 
 void PIDcalc(float setpoint) {
@@ -152,7 +146,14 @@ void PIDcalc(float setpoint) {
   einteg = einteg + er * delT;
 
   u = kp*er + ki*einteg + kd*ederiv;
-  speed = constrain(u, 0, 255);
+
+  if (t < ta) {
+    speed = constrain(u, 30, 255);
+  }
+  else {
+    speed = constrain(u, 0, 255);
+  }
+  
   analogWrite(ENA, speed);
   motorMove(setpoint);
 
