@@ -5,15 +5,15 @@
 const int ENA = 12, IN1 = 6, IN2 = 7, ENCA = 2, ENCB = 3; // the Arduino pin connected to the EN1 pin L298N
 volatile int newPos = 0;
 long userInput;
-float speed, oldPos, er, eri, u = 0, a = 5000, vmax = 800, x, setpoint, speedprev;
+float speed, oldPos, er, eri, u = 0, a = 4000, vmax = 6000, x, setpoint, speedprev;
 float tolm, tolp, delT = 10, ederiv, einteg, ta, tb, t, startT, totT, distance;
 
 Encoder myEnc(ENCA, ENCB);
 
 //PID constants
-float kp = 0.7; // d Tr, i O, d Ts, d SSE lower
-float ki = 0.05; // d Tr, i O, i Ts, elim SSE higher
-float kd = 0.09; // sd Tr, d O, d Ts, N/A SSE lower
+float kp = 1.0; // d Tr, i O, d Ts, d SSE lower
+float ki = 0.01; // d Tr, i O, i Ts, elim SSE higher
+float kd = 0.1; // sd Tr, d O, d Ts, N/A SSE lower
 
 void setup() {
   // initialize digital pins as outputs.
@@ -41,8 +41,8 @@ void loop () {
 
     distance = (float)(userInput - oldPos);
 
-    tolm = userInput - 10;
-    tolp = userInput + 10;
+    tolm = userInput - 15;
+    tolp = userInput + 15;
 
     startT = micros();
 
@@ -81,13 +81,13 @@ void motorMove(float setpoint) {
 
   newPos = (float) myEnc.read();
 
-  if (setpoint - newPos > 10) {
+  if (setpoint - newPos > 15) {
     digitalWrite(IN1, HIGH); // control motor A spins clockwise
     digitalWrite(IN2, LOW);  // control motor A spins clockwise
     }
 
 
-  else if (setpoint - newPos < 10) {  
+  else if (setpoint - newPos < 15) {  
     digitalWrite(IN1, LOW); // control motor A spins counterclockwise
     digitalWrite(IN2, HIGH);  // control motor A spins counterclockwise
 
