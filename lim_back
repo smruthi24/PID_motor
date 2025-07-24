@@ -1,0 +1,119 @@
+import gclib
+from time import sleep
+g = gclib.py()
+IP_ADDR = '192.168.200.100'
+g.GOpen(IP_ADDR)
+print(g.GInfo())
+
+# goes to reverse limit then homes on zero position
+
+print("Enter axis direction (for X type A, for Y type B, for Z type C): ")
+axisInput = input()
+
+lr = int(float(g.GCommand("MG _LR" + axisInput)))
+lf = int(float(g.GCommand("MG _LF" + axisInput)))
+index = int(float(g.GCommand("MG _TD" + axisInput)))
+motion = int(float(g.GCommand("MG _BG" + axisInput)))
+stop = int(float(g.GCommand("MG _SC" + axisInput)))
+print(lr, lf)
+g.GCommand("SH" + axisInput)
+
+try:
+
+        if (lr !=  0):
+
+                g.GCommand("JG" + axisInput + "= -5000")
+                g.GCommand("BG" + axisInput)
+
+                motion = int(float(g.GCommand("MG _BG" + axisInput)))
+
+                while (motion == 1):
+
+                        motion = int(float(g.GCommand("MG _BG" + axisInput)))
+
+                lr_e = int(float(g.GCommand("MG _TP" + axisInput)))
+
+                stop = int(float(g.GCommand("MG _SC + axisInput")))
+
+                if (stop != 3):
+
+                        print("reverse limit not reached, please run program again")
+                        g.GCommand("ST" + axisInput)
+                        g.GClose()
+
+        lr = int(float(g.GCommand("MG _LR" + axisInput)))
+        print(lr)
+
+        if (lr == 0):
+
+                g.GCommand("JG" + axisInput + "= 3000")
+                g.GCommand("HV" + axisInput + "= 100")
+                g.GCommand("FI" + axisInput)
+                g.GCommand("BG" + axisInput)
+
+                index = int(float(g.GCommand("MG _TD" + axisInput)))
+                print("step position: ", index)
+
+
+        while (motion == 1):
+
+                motion = int(float(g.GCommand("MG _BG" + axisInput)))
+        while (motion == 0):
+
+                stop = int(float(g.GCommand("MG _SC" + axisInput)))
+
+                if (stop != 10):
+
+                        print("home position not reached, please run program again")
+                        print("stop: ", stop)
+                        g.GCommand("ST" + axisInput)
+                        g.GClose()
+
+        g.GCommand("DE" + axisInput + "= 0")
+
+        lf = int(float(g.GCommand("MG _LF" + axisInput)))
+
+        if (lf !=  0):
+
+                g.GCommand("JG" + axisInput + "= 5000")
+                g.GCommand("BG" + axisInput)
+
+
+                while (motion == 1):
+
+                        motion = int(float(g.GCommand("MG _BG" + axisInput)))
+
+                stop = int(float(g.GCommand("MG _SC" + axisInput)))
+
+                if (stop != 2):
+
+                        print("forward limit not reached, please run program again")
+                        g.GCommand("ST" + axisInput)
+                        g.GClose()
+
+        lf_e = int(float(g.GCommand("MG _TP" + axisInput)))
+
+        print("encoder position: ", g.GCommand("MG _TP" + axisInput))
+        print(" step position: ", g.GCommand("MG _TD" + axisInput))
+
+        distance = lf_e - lr_e
+
+        print("allowable range: ", distance)
+
+        center = "int(float((distance/2))"
+
+        g.GCommand("PA" + axisInput + "=" + center)
+
+        stop = int(float(g.GCommand("MG _SC" + axisInput)))
+
+        if (stop != 1):
+
+                print("home position not reached, please run program again")
+                g.GCommand("ST" + axisInput)
+                g.GClose()
+
+except KeyboardInterrupt:
+        g.GCommand("ST" + axisInput)
+
+
+g.GClose()
