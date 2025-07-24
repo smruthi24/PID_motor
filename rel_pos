@@ -1,0 +1,34 @@
+import gclib
+g = gclib.py()
+IP_ADDR = '192.168.200.100'
+g.GOpen(IP_ADDR)
+
+# goes to any step position relatively
+
+print("starting encoder position: %f starting step position: %f", g.GCommand("MG _TPC"), g.GCommand("MG _TDC"))
+print("Enter a relative position: ")
+relInput = input()
+print("Enter axis direction ( for X type A, for Y type B and for Z type C): ")
+axisInput = input()
+
+g.GCommand("SH" + axisInput)
+g.GCommand("PR" + axisInput + " = " + relInput)
+g.GCommand("BG" + axisInput)
+
+motion = int(float(g.GCommand("MG _BG" + axisInput)))
+
+while (motion == 1):
+
+        motion = int(float(g.GCommand("MG _BG" + axisInput)))
+
+stop = int(float(g.GCommand("MG _SC" + axisInput)))
+
+if (stop == 2):
+        print("Reached forward limit")
+
+if (stop == 3):
+        print("Reached reverse limit")
+
+print("encoder position: ", g.GCommand("MG _TP" + axisInput))
+print("step position: ", g.GCommand("MG _TD" + axisInput))
+g.GClose()
