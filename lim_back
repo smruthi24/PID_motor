@@ -1,6 +1,3 @@
-import gclib
-from time import sleep
-g = gclib.py()
 IP_ADDR = '192.168.200.100'
 g.GOpen(IP_ADDR)
 print(g.GInfo())
@@ -33,7 +30,7 @@ try:
 
                 lr_e = int(float(g.GCommand("MG _TP" + axisInput)))
 
-                stop = int(float(g.GCommand("MG _SC + axisInput")))
+                stop = int(float(g.GCommand("MG _SC" + axisInput)))
 
                 if (stop != 3):
 
@@ -58,18 +55,17 @@ try:
         while (motion == 1):
 
                 motion = int(float(g.GCommand("MG _BG" + axisInput)))
-        while (motion == 0):
-
-                stop = int(float(g.GCommand("MG _SC" + axisInput)))
-
-                if (stop != 10):
-
-                        print("home position not reached, please run program again")
-                        print("stop: ", stop)
-                        g.GCommand("ST" + axisInput)
-                        g.GClose()
+        stop = int(float(g.GCommand("MG _SC" + axisInput)))
 
         g.GCommand("DE" + axisInput + "= 0")
+
+
+        if (stop != 10):
+
+                print("home position not reached, please run program again")
+                print("stop: ", stop)
+                g.GCommand("ST" + axisInput)
+                g.GClose()
 
         lf = int(float(g.GCommand("MG _LF" + axisInput)))
 
@@ -104,6 +100,11 @@ try:
 
         g.GCommand("PA" + axisInput + "=" + center)
 
+        while (motion == 1):
+
+                motion = int(float(g.GCommand("MG _BG" + axisInput)))
+
+
         stop = int(float(g.GCommand("MG _SC" + axisInput)))
 
         if (stop != 1):
@@ -111,7 +112,6 @@ try:
                 print("home position not reached, please run program again")
                 g.GCommand("ST" + axisInput)
                 g.GClose()
-
 except KeyboardInterrupt:
         g.GCommand("ST" + axisInput)
 
