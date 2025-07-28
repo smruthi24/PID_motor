@@ -21,36 +21,37 @@ g.GCommand("SH" + axisInput)
 try:
 
         print("going to reverse limit")
+
         if (lr !=  0):
 
                 g.GCommand("JG" + axisInput + "= -5000")
                 g.GCommand("BG" + axisInput)
 
+        motion = int(float(g.GCommand("MG _BG" + axisInput)))
+
+        while (motion == 1):
+
                 motion = int(float(g.GCommand("MG _BG" + axisInput)))
 
-                while (motion == 1):
+        lr_e = int(float(g.GCommand("MG _TP" + axisInput)))
 
-                        motion = int(float(g.GCommand("MG _BG" + axisInput)))
+        stop = int(float(g.GCommand("MG _SC" + axisInput)))
 
-                lr_e = int(float(g.GCommand("MG _TP" + axisInput)))
+        print("motion stopped stop: ", stop)
 
-                stop = int(float(g.GCommand("MG _SC" + axisInput)))
+        if (stop != 3):
 
-                print("motion stopped stop: ", stop)
-
-                if (stop != 3):
-
-                        print("reverse limit not reached, please run program again")
-                        g.GCommand("ST" + axisInput)
-                        g.GClose()
-                        sys.exit(0)
+                print("reverse limit not reached, please run program again")
+                g.GCommand("ST" + axisInput)
+                g.GClose()
+                sys.exit(0)
 
         lr = int(float(g.GCommand("MG _LR" + axisInput)))
 
         print("encoder position: ", g.GCommand("MG _TP" + axisInput))
         print("step position: ", g.GCommand("MG _TD" + axisInput))
 
-        lr_e = int(float(g.GCommand("MG _TP" + axisInput)))
+        lr_e = int(float(g.GCommand("MG _TD" + axisInput)))
 
         print("going to first index")
 
@@ -62,7 +63,6 @@ try:
                 g.GCommand("BG" + axisInput)
 
                 index = int(float(g.GCommand("MG _TD" + axisInput)))
-                print("step position: ", index)
 
         motion = int(float(g.GCommand("MG _BG" + axisInput)))
 
@@ -70,10 +70,7 @@ try:
 
                 motion = int(float(g.GCommand("MG _BG" + axisInput)))
 
-
         stop = int(float(g.GCommand("MG _SC" + axisInput)))
-
-        g.GCommand("DE" + axisInput + "= 0")
 
         print("motion stopped stop: ", stop)
 
@@ -85,10 +82,17 @@ try:
                 g.GClose()
                 sys.exit(0)
 
-        lf = int(float(g.GCommand("MG _LF" + axisInput)))
+#       lr_e0 = lr_e - int(float(g.GCommand("MG _TD" + axisInput)))
 
         print("encoder position: ", g.GCommand("MG _TP" + axisInput))
         print("step position: ", g.GCommand("MG _TD" + axisInput))
+
+#       g.GCommand("DE" + axisInput + "= 0")
+
+        lf = int(float(g.GCommand("MG _LF" + axisInput)))
+
+#       print("encoder position: ", g.GCommand("MG _TP" + axisInput))
+#       print("step position: ", g.GCommand("MG _TD" + axisInput))
 
         print("going to forward limit")
 
@@ -97,36 +101,33 @@ try:
                 g.GCommand("JG" + axisInput + "= 5000")
                 g.GCommand("BG" + axisInput)
 
+        motion = int(float(g.GCommand("MG _BG" + axisInput)))
+
+        while (motion == 1):
+
                 motion = int(float(g.GCommand("MG _BG" + axisInput)))
 
-                while (motion == 1):
+        stop = int(float(g.GCommand("MG _SC" + axisInput)))
 
-                        motion = int(float(g.GCommand("MG _BG" + axisInput)))
+        print("motion stopped stop: ", stop)
 
-                stop = int(float(g.GCommand("MG _SC" + axisInput)))
+        if (stop != 2):
 
-                print("motion stopped stop: ", stop)
+                print("forward limit not reached, please run program again")
+                g.GCommand("ST" + axisInput)
+                g.GClose()
+                print("exiting program")
+                sys.exit(0)
 
-                if (stop != 2):
+        lf_e = int(float(g.GCommand("MG _TD" + axisInput)))
 
-                        print("forward limit not reached, please run program again")
-                        g.GCommand("ST" + axisInput)
-                        g.GClose()
-                        print("exiting program")
-                        sys.exit(0)
-
-
-        lf_e = int(float(g.GCommand("MG _TP" + axisInput)))
-        
         print("encoder position: ", g.GCommand("MG _TP" + axisInput))
         print(" step position: ", g.GCommand("MG _TD" + axisInput))
 
-        print("forward limit in encoder counts: ", lf_e)
-        print("reverse limit in encoder counts: ", lr_e)
+        print("forward limit in stepper counts: ", lf_e)
+        print("reverse limit in stepper counts: ", lr_e)
 
         distance = lf_e - lr_e
-
-        print("allowable range: ", distance)
 
         center = int(float(lf_e - (distance/2)))
 
@@ -139,13 +140,11 @@ try:
 
                 g.GCommand("BG" + axisInput)
 
-
         motion = int(float(g.GCommand("MG _BG" + axisInput)))
 
         while (motion == 1):
 
                 motion = int(float(g.GCommand("MG _BG" + axisInput)))
-
 
         stop = int(float(g.GCommand("MG _SC" + axisInput)))
 
