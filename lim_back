@@ -21,7 +21,6 @@ g.GCommand("SH" + axisInput)
 try:
 
         print("going to reverse limit")
-
         if (lr !=  0):
 
                 g.GCommand("JG" + axisInput + "= -5000")
@@ -119,6 +118,7 @@ try:
                 print("exiting program")
                 sys.exit(0)
 
+
         lf_e = int(float(g.GCommand("MG _TD" + axisInput)))
 
         print("encoder position: ", g.GCommand("MG _TP" + axisInput))
@@ -134,9 +134,11 @@ try:
         print("center: ", center)
         print("going to center")
 
+        lf = int(float(g.GCommand("MG _LF" + axisInput)))
+
         if (lf == 0):
 
-                g.GCommand("PA" + axisInput + "= center")
+                g.GCommand("PA" + axisInput + "= " + str(center))
 
                 g.GCommand("BG" + axisInput)
 
@@ -145,6 +147,7 @@ try:
         while (motion == 1):
 
                 motion = int(float(g.GCommand("MG _BG" + axisInput)))
+
 
         stop = int(float(g.GCommand("MG _SC" + axisInput)))
 
