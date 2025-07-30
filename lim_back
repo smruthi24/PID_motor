@@ -50,7 +50,9 @@ try:
         print("encoder position: ", g.GCommand("MG _TP" + axisInput))
         print("step position: ", g.GCommand("MG _TD" + axisInput))
 
-        lr_e = int(float(g.GCommand("MG _TD" + axisInput)))
+        lr_s = int(float(g.GCommand("MG _TD" + axisInput)))
+
+        lr_e = int(float(g.GCommand("MG _TP" + axisInput)))
 
         print("going to first index")
 
@@ -81,17 +83,10 @@ try:
                 g.GClose()
                 sys.exit(0)
 
-#       lr_e0 = lr_e - int(float(g.GCommand("MG _TD" + axisInput)))
-
         print("encoder position: ", g.GCommand("MG _TP" + axisInput))
         print("step position: ", g.GCommand("MG _TD" + axisInput))
 
-#       g.GCommand("DE" + axisInput + "= 0")
-
         lf = int(float(g.GCommand("MG _LF" + axisInput)))
-
-#       print("encoder position: ", g.GCommand("MG _TP" + axisInput))
-#       print("step position: ", g.GCommand("MG _TD" + axisInput))
 
         print("going to forward limit")
 
@@ -119,17 +114,25 @@ try:
                 sys.exit(0)
 
 
-        lf_e = int(float(g.GCommand("MG _TD" + axisInput)))
+        lf_s = int(float(g.GCommand("MG _TD" + axisInput)))
+
+        lf_e = int(float(g.GCommand("MG _TP" + axisInput)))
 
         print("encoder position: ", g.GCommand("MG _TP" + axisInput))
-        print(" step position: ", g.GCommand("MG _TD" + axisInput))
+        print("step position: ", g.GCommand("MG _TD" + axisInput))
 
-        print("forward limit in stepper counts: ", lf_e)
-        print("reverse limit in stepper counts: ", lr_e)
+        print("forward limit in stepper counts: ", lf_s)
+        print("reverse limit in stepper counts: ", lr_s)
 
-        distance = lf_e - lr_e
+        distance_e = lf_e - lr_e
 
-        center = int(float(lf_e - (distance/2)))
+        distance_s = lf_s - lr_s
+
+        range = int(float(distance_e * 2 / 1000))
+
+        print("allowable range in millimeters: " + str(range))
+
+        center = int(float(lf_s - (distance_s/2)))
 
         print("center: ", center)
         print("going to center")
@@ -165,6 +168,55 @@ try:
 
         print("encoder position: ", g.GCommand("MG _TP" + axisInput))
         print("step position: ", g.GCommand("MG _TD" + axisInput))
+
+        print("type A for absolute position or R for relative position")
+
+        userInput = input()
+
+        index = int(float(g.GCommand("MG _TD" + axisInput)))
+
+        if (userInput == "A"):
+
+                print("type absolute position in millimeters")
+
+                absInput = int(float(distance_s / range)) * int(float(input()))
+
+                print("going to " + str(absInput) + " stepper counts")
+
+                g.GCommand("PA" + axisInput + " = " + str(absInput))
+
+        if (userInput == "R"):
+
+                print("type relative position in millimeters")
+
+                relInput = int(float(distance_s / range)) * int(float(input()))
+
+                print("going to " + str(relInput + index) + " stepper counts")
+
+                g.GCommand("PR" + axisInput + " = " + str(relInput))
+
+        g.GCommand("BG" + axisInput)
+
+        motion = int(float(g.GCommand("MG _BG" + axisInput)))
+
+        while (motion == 1):
+
+                motion = int(float(g.GCommand("MG _BG" + axisInput)))
+
+        stop = int(float(g.GCommand("MG _SC" + axisInput)))
+
+        if (stop == 2):
+
+                print("Reached forward limit")
+
+        if (stop == 3):
+
+                print("Reached reverse limit")
+
+        print("encoder position: ", g.GCommand("MG _TP" + axisInput))
+        print("step position: ", g.GCommand("MG _TD" + axisInput))
+        g.GClose()
+
 
 except KeyboardInterrupt:
         g.GCommand("ST" + axisInput)
