@@ -11,11 +11,13 @@ print(g.GInfo())
 
 parser = argparse.ArgumentParser(description = "Enter axis directions separated by spaces: ")
 
-parser.add_argument("-a",nargs = "=", choices = ["A", "B", "C", "D"], required = True, help = "axes to choose from (A, B, C, D))
+parser.add_argument("-a",nargs = "+", choices = ["A", "B", "C", "D"], required = True, help = "axes to choose from (A, B, C, D)")
 
 args = parser.parse_args()
 
-axes = args.axis
+axes = args.a
+
+i = 0
 
 print(f"Selected axes: {axes}")
 
@@ -24,16 +26,15 @@ print(f"Selected axes: {axes}")
 
 try:
 
-        while i <= len(axes):
+        while i < len(axes):
+
+                axisInput = axes[i]
 
                 lr = int(float(g.GCommand("MG _LR" + axisInput)))
                 lf = int(float(g.GCommand("MG _LF" + axisInput)))
                 index = int(float(g.GCommand("MG _TD" + axisInput)))
                 motion = int(float(g.GCommand("MG _BG" + axisInput)))
                 stop = int(float(g.GCommand("MG _SC" + axisInput)))
-
-
-                axisInput = axes[i]
 
                 g.GCommand("SH" + axisInput)
 
@@ -92,6 +93,10 @@ try:
                 stop = int(float(g.GCommand("MG _SC" + axisInput)))
 
                 print("motion stopped stop: ", stop)
+
+                if axisInput == "A":
+
+                        g.GCommand("DE" + axisInput + "= 0")
 
                 if (stop != 10):
 
